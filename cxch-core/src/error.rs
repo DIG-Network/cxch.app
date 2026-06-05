@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-/// All errors that can be produced while building a wXCH spend bundle.
+/// All errors that can be produced while building a cXCH spend bundle.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("driver error: {0}")]

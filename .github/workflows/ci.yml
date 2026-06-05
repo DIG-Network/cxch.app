@@ -7,11 +7,11 @@ on:
 
 jobs:
   rust-core:
-    name: wxch-core (test + wasm build)
+    name: cxch-core (test + wasm build)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: wxch-core
+        working-directory: cxch-core
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -19,7 +19,7 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: wxch-core
+          workspaces: cxch-core
       - name: Run simulator round-trip tests
         run: cargo test --release
       - name: Install wasm-pack

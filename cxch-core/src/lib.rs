@@ -1,7 +1,7 @@
-//! wXCH spend-bundle builder.
+//! cXCH spend-bundle builder.
 //!
 //! This crate builds the unsigned coin spends for wrapping (minting) and melting
-//! (burning) wXCH, a 1:1 wrapped representation of native XCH expressed as a
+//! (burning) cXCH, a 1:1 wrapped representation of native XCH expressed as a
 //! CAT2 token. It compiles both to a native library (for the simulator tests)
 //! and to WebAssembly (consumed by the Next.js frontend).
 //!
@@ -36,25 +36,25 @@ fn to_js<T: Serialize>(value: &T) -> std::result::Result<JsValue, JsValue> {
         .map_err(|e| JsError::new(&e.to_string()).into())
 }
 
-/// The canonical wXCH asset id (TAIL hash), as a `0x`-prefixed hex string.
+/// The canonical cXCH asset id (TAIL hash), as a `0x`-prefixed hex string.
 #[wasm_bindgen]
-pub fn wxch_asset_id() -> String {
-    format!("0x{}", hex::encode(tail::wxch_asset_id().to_bytes()))
+pub fn cxch_asset_id() -> String {
+    format!("0x{}", hex::encode(tail::cxch_asset_id().to_bytes()))
 }
 
-/// The wXCH issuer public key, as a `0x`-prefixed hex string.
+/// The cXCH issuer public key, as a `0x`-prefixed hex string.
 #[wasm_bindgen]
 pub fn issuer_public_key() -> String {
     format!("0x{}", hex::encode(constants::issuer_pk().to_bytes()))
 }
 
-/// The CAT2 outer puzzle hash for a wXCH coin with the given inner puzzle hash.
+/// The CAT2 outer puzzle hash for a cXCH coin with the given inner puzzle hash.
 #[wasm_bindgen]
-pub fn wxch_outer_puzzle_hash(inner_puzzle_hash: String) -> std::result::Result<String, JsValue> {
+pub fn cxch_outer_puzzle_hash(inner_puzzle_hash: String) -> std::result::Result<String, JsValue> {
     let inner = parse_bytes32(&inner_puzzle_hash)?;
     Ok(format!(
         "0x{}",
-        hex::encode(tail::wxch_outer_puzzle_hash(inner).to_bytes())
+        hex::encode(tail::cxch_outer_puzzle_hash(inner).to_bytes())
     ))
 }
 
@@ -127,9 +127,9 @@ pub fn build_melt_spends(request: JsValue) -> std::result::Result<JsValue, JsVal
     let dto: MeltRequestDto = serde_wasm_bindgen::from_value(request)
         .map_err(|e| Error::Serde(e.to_string()))?;
 
-    let mut wxch_coins = Vec::with_capacity(dto.wxch_coins.len());
-    for coin in &dto.wxch_coins {
-        wxch_coins.push(coin.to_wxch_coin()?);
+    let mut cxch_coins = Vec::with_capacity(dto.cxch_coins.len());
+    for coin in &dto.cxch_coins {
+        cxch_coins.push(coin.to_cxch_coin()?);
     }
     let mut anchor_coins = Vec::with_capacity(dto.anchor_coins.len());
     for coin in &dto.anchor_coins {
@@ -137,7 +137,7 @@ pub fn build_melt_spends(request: JsValue) -> std::result::Result<JsValue, JsVal
     }
 
     let params = melt::MeltParams {
-        wxch_coins,
+        cxch_coins,
         anchor_coins,
         recipient_puzzle_hash: parse_bytes32(&dto.recipient_puzzle_hash)?,
         cat_change_puzzle_hash: parse_bytes32(&dto.cat_change_puzzle_hash)?,

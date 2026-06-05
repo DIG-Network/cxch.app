@@ -10,10 +10,10 @@ pub struct StandardCoin {
     pub synthetic_key: PublicKey,
 }
 
-/// A wXCH CAT coin together with the synthetic public key controlling its inner
+/// A cXCH CAT coin together with the synthetic public key controlling its inner
 /// (p2) puzzle. The [`Cat`] carries its own lineage proof and asset info.
 #[derive(Debug, Clone, Copy)]
-pub struct WxchCoin {
+pub struct CxchCoin {
     pub cat: Cat,
     pub synthetic_key: PublicKey,
 }
@@ -27,8 +27,8 @@ pub struct WxchCoin {
 pub struct UnsignedSpendBundle {
     pub coin_spends: Vec<CoinSpend>,
     pub issuer_signature: Signature,
-    /// The resulting CAT coins created by this bundle: the minted wXCH coins for
-    /// a wrap, or the leftover wXCH change for a melt. Useful for predicting the
+    /// The resulting CAT coins created by this bundle: the minted cXCH coins for
+    /// a wrap, or the leftover cXCH change for a melt. Useful for predicting the
     /// next coin to spend without waiting for a block.
     pub cat_outputs: Vec<Cat>,
 }

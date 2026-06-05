@@ -1,15 +1,15 @@
-# wXCH — a 1:1 Wrapped-XCH CAT2 dApp on Chia
+# cXCH — a 1:1 Wrapped-XCH CAT2 dApp on Chia
 
-wXCH is a wrapped representation of native XCH expressed as a **CAT2** (Chia
-Asset Token, version 2). Each wXCH mojo is backed **1:1** by a real XCH mojo, and
+cXCH is a wrapped representation of native XCH expressed as a **CAT2** (Chia
+Asset Token, version 2). Each cXCH mojo is backed **1:1** by a real XCH mojo, and
 the peg is enforced by **Chia consensus itself** — not by a contract or a
 custodian:
 
 - **Wrap (mint):** spend XCH and run the multi-issuance TAIL with a positive
   delta in the same spend bundle. Consensus only accepts the bundle if the XCH
-  consumed equals `mint + fee + change`, so newly minted wXCH is always matched
+  consumed equals `mint + fee + change`, so newly minted cXCH is always matched
   by locked XCH.
-- **Melt (burn):** spend wXCH and run the TAIL with a negative delta. The freed
+- **Melt (burn):** spend cXCH and run the TAIL with a negative delta. The freed
   mojos re-emerge as ordinary XCH in the same block.
 
 The TAIL is the canonical `everything_with_signature` puzzle curried with a
@@ -28,8 +28,8 @@ Sage's own CHIP-0002 command definitions in
 [`xch-dev/sage`](https://github.com/xch-dev/sage).
 
 ```
-wXCH/
-├── wxch-core/        # Rust → WASM spend-bundle builder (the on-chain logic)
+cXCH/
+├── cxch-core/        # Rust → WASM spend-bundle builder (the on-chain logic)
 │   ├── src/          # lib.rs (wasm surface), wrap.rs, melt.rs, tail.rs, …
 │   ├── tests/        # wrap → melt round trip against the chia-wallet-sdk simulator
 │   └── examples/     # identity.rs prints the canonical asset id
@@ -43,24 +43,24 @@ wXCH/
 
 | Value | |
 |---|---|
-| wXCH asset id (TAIL hash) | `0xc3ab9294cca340fb5825ddae1b4787a15f306a99cb37940e47a0184e62428845` |
+| cXCH asset id (TAIL hash) | `0x8808ca01803e09bf6d067075c9373b227aa8b086504ff0ac63cb3f02fe21c9ba` |
 | TAIL | `everything_with_signature` (multi-issuance), from `chia-puzzles` |
-| Issuer public key | `0xa3cafdf3d63c1032a410cbd91966333fc5ae5eb631226ef65e71354262ca0b29bdad443b72ffc7411267d4b8327676cc` |
+| Issuer public key | `0xa4190e0dbbe68920ce6fb1b22c1da7c70561aad975a93544b5af91995329a4f75cbd8096b2f1baa07a2c339b74bd45ab` |
 
-Recompute these any time with `cargo run --example identity` inside `wxch-core`.
+Recompute these any time with `cargo run --example identity` inside `cxch-core`.
 
 ## How wrap and melt are built
 
-The Rust core (`wxch-core`) is the heart of the project. It uses the real
+The Rust core (`cxch-core`) is the heart of the project. It uses the real
 [`chia-wallet-sdk`](https://github.com/xch-dev/chia-wallet-sdk) 0.27 driver
 primitives:
 
 - **Wrap** (`wrap.rs`) uses `Cat::issue_with_key` with
   `EverythingWithSignatureTailArgs(issuer_pk)`. The funder XCH coin emits the
   conditions that create the CAT eve coin (plus change and fee); the eve coin's
-  inner puzzle mints the wXCH to the recipient. The 1:1 backing is guaranteed by
+  inner puzzle mints the cXCH to the recipient. The 1:1 backing is guaranteed by
   the bundle's mojo balance.
-- **Melt** (`melt.rs`) reveals the TAIL on the first wXCH coin via
+- **Melt** (`melt.rs`) reveals the TAIL on the first cXCH coin via
   `Conditions::run_cat_tail`, and `Cat::spend_all` computes the negative
   `extra_delta` automatically. Because a CAT coin can only create CAT children,
   the freed mojos are claimed by an ordinary **anchor** XCH coin spent in the
@@ -87,7 +87,7 @@ bindings, the BLS signatures, and the bundle mojo balance (the source of the
 peg):
 
 ```bash
-cd wxch-core
+cd cxch-core
 cargo test
 ```
 
@@ -106,7 +106,7 @@ The CHIP-0002 contract used by the frontend is taken from Sage's source
   `standardPuzzleHash` (no extra synthetic derivation).
 - `chip0002_signCoinSpends` takes `{ coinSpends, partialSign }`, where each coin
   spend uses snake_case `coin` fields plus `puzzle_reveal` / `solution` — exactly
-  what wxch-core emits — and returns the aggregated signature as a string. We
+  what cxch-core emits — and returns the aggregated signature as a string. We
   call it with `partialSign: true` and aggregate the issuer's TAIL signature.
 - `chip0002_getAssetCoins` returns coins with a `lineageProof`
   (`{ parentName, innerPuzzleHash, amount }`), mapped for melt.
@@ -141,7 +141,7 @@ cp .env.example .env.local   # set NEXT_PUBLIC_WC_PROJECT_ID
 npm run dev                  # http://localhost:3000
 ```
 
-wXCH is mainnet-only: the chain id (`chia:mainnet`) is fixed in code and the
+cXCH is mainnet-only: the chain id (`chia:mainnet`) is fixed in code and the
 default `NEXT_PUBLIC_COINSET_API` points at `https://api.coinset.org`.
 
 ### Production build

@@ -9,17 +9,17 @@ use clvmr::Allocator;
 use crate::constants::{issuer_pk, issuer_sk, Network};
 use crate::error::Result;
 
-/// The canonical wXCH asset id (the TAIL hash). This is the SHA-256 tree hash of
+/// The canonical cXCH asset id (the TAIL hash). This is the SHA-256 tree hash of
 /// the `everything_with_signature` TAIL curried with the issuer public key, and
-/// it is the single fungibility anchor for every wXCH coin.
-pub fn wxch_asset_id() -> Bytes32 {
+/// it is the single fungibility anchor for every cXCH coin.
+pub fn cxch_asset_id() -> Bytes32 {
     EverythingWithSignatureTailArgs::curry_tree_hash(issuer_pk()).into()
 }
 
-/// The CAT2 outer puzzle hash for a wXCH coin with the given inner (p2) puzzle
-/// hash. This is the on-chain `puzzle_hash` a wXCH coin lives at.
-pub fn wxch_outer_puzzle_hash(inner_puzzle_hash: Bytes32) -> Bytes32 {
-    CatArgs::curry_tree_hash(wxch_asset_id(), inner_puzzle_hash.into()).into()
+/// The CAT2 outer puzzle hash for a cXCH coin with the given inner (p2) puzzle
+/// hash. This is the on-chain `puzzle_hash` a cXCH coin lives at.
+pub fn cxch_outer_puzzle_hash(inner_puzzle_hash: Bytes32) -> Bytes32 {
+    CatArgs::curry_tree_hash(cxch_asset_id(), inner_puzzle_hash.into()).into()
 }
 
 /// The standard (p2_delegated_puzzle_or_hidden_puzzle) puzzle hash for a given

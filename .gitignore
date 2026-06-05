@@ -1,5 +1,5 @@
 # Rust
-/wxch-core/target
+/cxch-core/target
 **/*.rs.bk
 
 # Node / Next.js
