@@ -20,7 +20,12 @@ of the mojo-conservation rule that every spend bundle must obey.
 This repository implements the architecture described in the project white paper
 (`Research_Report.md`): a Rust spend-bundle builder compiled to WebAssembly, and
 a Next.js 15 / React 19 frontend that talks to **Sage Wallet** over
-WalletConnect v2.
+WalletConnect v2. It is **mainnet-only**.
+
+The WalletConnect / Sage integration is modelled on Yakuhito's reference dApp
+[`streaming-ui`](https://github.com/Yakuhito/streaming-ui) and verified against
+Sage's own CHIP-0002 command definitions in
+[`xch-dev/sage`](https://github.com/xch-dev/sage).
 
 ```
 wXCH/
@@ -75,14 +80,37 @@ and aggregates the two signatures into the final `SpendBundle`.
 
 ## Verifying the core
 
-The on-chain mechanism is validated against the in-process simulator, which
-checks every puzzle, the CAT ring accounting, the melt `extra_delta`, the
-announcement bindings, the signatures, and the bundle mojo balance:
+The on-chain mechanism is validated against the in-process chia-wallet-sdk
+simulator, which actually executes the CLVM puzzles and checks every puzzle, the
+CAT2 ring accounting, the melt `extra_delta`, the wrap/melt announcement
+bindings, the BLS signatures, and the bundle mojo balance (the source of the
+peg):
 
 ```bash
 cd wxch-core
-cargo test           # wrap → melt round trip + full-balance melt
+cargo test
 ```
+
+The suite covers wrap → melt round trips, the **full signature-aggregation path**
+(wallet partial signature + issuer partial signature, proving the aggregate is
+accepted by consensus), exact peg/fee accounting to the mojo, the fungibility
+canary (different inner puzzle → same asset id), 1-mojo mints, multi-coin wraps
+and melts, and input-validation error cases.
+
+### How wallet wiring was derived
+
+The CHIP-0002 contract used by the frontend is taken from Sage's source
+(`src/walletconnect/commands.ts`) and the reference dApp. In particular:
+
+- `chip0002_getPublicKeys` returns **synthetic** keys, used directly with
+  `standardPuzzleHash` (no extra synthetic derivation).
+- `chip0002_signCoinSpends` takes `{ coinSpends, partialSign }`, where each coin
+  spend uses snake_case `coin` fields plus `puzzle_reveal` / `solution` — exactly
+  what wxch-core emits — and returns the aggregated signature as a string. We
+  call it with `partialSign: true` and aggregate the issuer's TAIL signature.
+- `chip0002_getAssetCoins` returns coins with a `lineageProof`
+  (`{ parentName, innerPuzzleHash, amount }`), mapped for melt.
+- The receive address comes from `chia_getAddress`.
 
 ## Build & run
 
@@ -109,12 +137,12 @@ npm run build:wasm     # wasm-pack build → app/wasm-pkg
 
 ```bash
 cd app
-cp .env.example .env.local   # set NEXT_PUBLIC_WC_PROJECT_ID, pick the network
+cp .env.example .env.local   # set NEXT_PUBLIC_WC_PROJECT_ID
 npm run dev                  # http://localhost:3000
 ```
 
-Set `NEXT_PUBLIC_CHIA_CHAIN_ID` to `chia:testnet11` (and the matching
-`NEXT_PUBLIC_COINSET_API`) to try it safely on testnet11 first.
+wXCH is mainnet-only: the chain id (`chia:mainnet`) is fixed in code and the
+default `NEXT_PUBLIC_COINSET_API` points at `https://api.coinset.org`.
 
 ### Production build
 
@@ -136,11 +164,10 @@ npm run build && npm run start    # or deploy the static output
   (CVE-2025-66478); for production, bump to the latest patched `15.x`
   (`npm i next@^15 eslint-config-next@^15`). The dApp is client-only and is
   typically deployed as a static export, which limits exposure.
-- **Wallet wire formats.** Different Chia wallets have used slightly different
-  field casings for coins and coin spends. `app/app/lib/sage.ts` normalizes both
-  camelCase and snake_case; it is the single place to adjust if a particular
-  Sage build rejects a request. End-to-end behaviour should be confirmed against
-  a live Sage wallet on testnet11 before mainnet use.
+- **Wallet wire formats.** The coin / coin-spend shapes are taken from Sage's
+  CHIP-0002 command definitions; `app/app/lib/sage.ts` additionally tolerates
+  field-casing differences and is the single place to adjust if a future Sage
+  build changes the contract.
 
 ## License
 

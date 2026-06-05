@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useSage, CHAIN_ID } from "../lib/walletconnect";
+import { useSage } from "../lib/walletconnect";
 import { build_melt_spends, wxch_asset_id } from "../lib/wasm";
 import { xchToMojos } from "../lib/format";
 import {
@@ -73,7 +73,6 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
         cat_change_puzzle_hash: recipientPuzzleHash,
         melt_amount_mojos: meltMojos.toString(),
         fee_mojos: DEFAULT_FEE.toString(),
-        network: CHAIN_ID,
       }) as BuiltBundle;
 
       const status = await signAndBroadcast(request, built);

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useSage, CHAIN_ID } from "../lib/walletconnect";
+import { useSage } from "../lib/walletconnect";
 import { build_wrap_spends } from "../lib/wasm";
 import { xchToMojos } from "../lib/format";
 import {
@@ -53,7 +53,6 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
         change_puzzle_hash: recipientPuzzleHash,
         mint_amount_mojos: mintMojos.toString(),
         fee_mojos: DEFAULT_FEE.toString(),
-        network: CHAIN_ID,
       }) as BuiltBundle;
 
       const status = await signAndBroadcast(request, built);

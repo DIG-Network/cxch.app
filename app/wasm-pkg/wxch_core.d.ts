@@ -35,10 +35,9 @@ export function derive_synthetic_key(observer_key: string): string;
 export function issuer_public_key(): string;
 
 /**
- * Converts a `0x`-prefixed puzzle hash into a bech32m address for the given
- * network (`mainnet` or `testnet11`).
+ * Converts a `0x`-prefixed puzzle hash into a mainnet (`xch`) bech32m address.
  */
-export function puzzle_hash_to_address(puzzle_hash: string, network: string): string;
+export function puzzle_hash_to_address(puzzle_hash: string): string;
 
 /**
  * The standard puzzle hash for a synthetic public key.
@@ -65,7 +64,7 @@ export interface InitOutput {
     readonly build_wrap_spends: (a: any) => [number, number, number];
     readonly derive_synthetic_key: (a: number, b: number) => [number, number, number, number];
     readonly issuer_public_key: () => [number, number];
-    readonly puzzle_hash_to_address: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly puzzle_hash_to_address: (a: number, b: number) => [number, number, number, number];
     readonly standard_puzzle_hash: (a: number, b: number) => [number, number, number, number];
     readonly wxch_asset_id: () => [number, number];
     readonly wxch_outer_puzzle_hash: (a: number, b: number) => [number, number, number, number];

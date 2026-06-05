@@ -3,8 +3,6 @@ use chia_protocol::Bytes32;
 use chia_sdk_signer::AggSigConstants;
 use chia_sdk_types::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
 
-use crate::error::{Error, Result};
-
 /// The genesis challenge of the Chia mainnet, which is also the
 /// `AGG_SIG_ME` additional data used when validating signatures.
 pub const MAINNET_GENESIS_CHALLENGE: [u8; 32] =
@@ -41,16 +39,6 @@ pub enum Network {
 }
 
 impl Network {
-    /// Parses a network from its string identifier. Accepts both the bare name
-    /// (`mainnet`) and the CAIP-2 form (`chia:mainnet`).
-    pub fn parse(value: &str) -> Result<Self> {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "mainnet" | "chia:mainnet" => Ok(Network::Mainnet),
-            "testnet11" | "chia:testnet11" => Ok(Network::Testnet11),
-            other => Err(Error::UnknownNetwork(other.to_string())),
-        }
-    }
-
     /// The bech32m address prefix for this network.
     pub fn address_prefix(self) -> &'static str {
         match self {

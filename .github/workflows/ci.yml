@@ -50,5 +50,3 @@ jobs:
         run: npm install
       - name: Build
         run: npm run build
-        env:
-          NEXT_PUBLIC_CHIA_CHAIN_ID: chia:testnet11

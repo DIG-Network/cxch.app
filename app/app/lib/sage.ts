@@ -10,7 +10,7 @@
 // is resilient to those differences. If a specific wallet build still rejects a
 // request, the conversion helpers here are the single place to adjust.
 
-import { address_to_puzzle_hash, derive_synthetic_key, standard_puzzle_hash } from "./wasm";
+import { address_to_puzzle_hash, standard_puzzle_hash } from "./wasm";
 import { with0x } from "./format";
 
 type RequestFn = <T = unknown>(method: string, params: unknown) => Promise<T>;
@@ -26,9 +26,10 @@ export async function getReceivePuzzleHash(request: RequestFn): Promise<string> 
   return address_to_puzzle_hash(address);
 }
 
-/** Fetches the wallet's public keys via CHIP-0002. */
+/** Fetches the wallet's public keys via CHIP-0002. Sage returns synthetic keys
+ * that can be used directly to construct the standard puzzle. */
 export async function getPublicKeys(request: RequestFn): Promise<string[]> {
-  const response = await request("chip0002_getPublicKeys", {});
+  const response = await request("chip0002_getPublicKeys", { limit: 500, offset: 0 });
   return extractPublicKeys(response);
 }
 
@@ -95,12 +96,14 @@ export function normalizeCoin(raw: unknown): CoinJson {
 /** Normalizes a CAT lineage proof from any wallet shape. */
 export function normalizeLineageProof(raw: unknown): LineageProofJson {
   const obj = (raw ?? {}) as AnyRecord;
+  // Sage's chip0002_getAssetCoins returns lineageProof as
+  // { parentName, innerPuzzleHash, amount }.
   return {
     parent_parent_coin_info: with0x(
-      asString(pick(obj, "parent_parent_coin_info", "parentParentCoinInfo", "parentCoinInfo"))
+      asString(pick(obj, "parentName", "parent_parent_coin_info", "parentParentCoinInfo", "parentCoinInfo"))
     ),
     parent_inner_puzzle_hash: with0x(
-      asString(pick(obj, "parent_inner_puzzle_hash", "parentInnerPuzzleHash", "innerPuzzleHash"))
+      asString(pick(obj, "innerPuzzleHash", "parent_inner_puzzle_hash", "parentInnerPuzzleHash"))
     ),
     parent_amount: asString(pick(obj, "parent_amount", "parentAmount", "amount")),
   };
@@ -109,25 +112,18 @@ export function normalizeLineageProof(raw: unknown): LineageProofJson {
 /**
  * Resolves the synthetic public key that controls a given standard puzzle hash.
  *
- * Wallets expose observer public keys via `chip0002_getPublicKeys`; the standard
- * puzzle is curried with the *synthetic* key derived from the observer key. We
- * index both the synthetic-derived hash and the raw hash so we work whether the
- * wallet returns observer or already-synthetic keys.
+ * Sage's `chip0002_getPublicKeys` returns synthetic keys, so the standard puzzle
+ * hash is computed directly from each key (this matches the reference
+ * streaming-ui dApp, which matches coins via `standardPuzzleHash(key)`).
  */
 export function buildKeyResolver(publicKeys: string[]): (puzzleHash: string) => string | undefined {
   const map = new Map<string, string>();
   for (const raw of publicKeys) {
     const pk = with0x(raw);
     try {
-      const synthetic = derive_synthetic_key(pk);
-      map.set(standard_puzzle_hash(synthetic).toLowerCase(), synthetic);
-    } catch {
-      /* ignore non-BLS entries */
-    }
-    try {
       map.set(standard_puzzle_hash(pk).toLowerCase(), pk);
     } catch {
-      /* the raw key may not be a valid synthetic key; that's fine */
+      /* skip entries that are not valid BLS public keys */
     }
   }
   return (puzzleHash: string) => map.get(with0x(puzzleHash).toLowerCase());
@@ -155,17 +151,4 @@ export function selectCoins<T extends { amount: string }>(coins: T[], needed: bi
     throw new Error("Insufficient spendable coins for this amount and fee");
   }
   return selected;
-}
-
-/** Converts wxch-core coin spends into the camelCase CHIP-0002 shape Sage signs. */
-export function toSageCoinSpends(coinSpends: CoinSpendJson[]) {
-  return coinSpends.map((cs) => ({
-    coin: {
-      parentCoinInfo: cs.coin.parent_coin_info,
-      puzzleHash: cs.coin.puzzle_hash,
-      amount: Number(cs.coin.amount),
-    },
-    puzzleReveal: cs.puzzle_reveal,
-    solution: cs.solution,
-  }));
 }

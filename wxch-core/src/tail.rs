@@ -1,4 +1,4 @@
-use chia_bls::{aggregate, sign, Signature};
+use chia_bls::{aggregate, sign, SecretKey, Signature};
 use chia_protocol::{Bytes32, CoinSpend};
 use chia_puzzle_types::cat::{CatArgs, EverythingWithSignatureTailArgs};
 use chia_puzzle_types::standard::StandardArgs;
@@ -39,8 +39,23 @@ pub fn standard_puzzle_hash(synthetic_key: PublicKey) -> Bytes32 {
 /// standard coins it controls; the two partial signatures aggregate into the
 /// final spend-bundle signature.
 pub fn issuer_partial_signature(coin_spends: &[CoinSpend], network: Network) -> Result<Signature> {
+    partial_signature(coin_spends, network, &issuer_sk())
+}
+
+/// Computes the partial BLS signature contributed by a single secret key over a
+/// set of coin spends: it signs exactly the `AGG_SIG` conditions whose public
+/// key matches `sk`'s public key, and aggregates them.
+///
+/// This is the building block for both the issuer's partial signature and (in
+/// tests) the wallet's partial signature, so the full aggregation path can be
+/// validated end-to-end.
+pub fn partial_signature(
+    coin_spends: &[CoinSpend],
+    network: Network,
+    sk: &SecretKey,
+) -> Result<Signature> {
     let constants = network.agg_sig_constants();
-    let issuer = issuer_pk();
+    let public_key = sk.public_key();
 
     let mut allocator = Allocator::new();
     let required = RequiredSignature::from_coin_spends(&mut allocator, coin_spends, &constants)?;
@@ -48,8 +63,8 @@ pub fn issuer_partial_signature(coin_spends: &[CoinSpend], network: Network) -> 
     let mut signatures = Vec::new();
     for requirement in required {
         if let RequiredSignature::Bls(bls) = requirement {
-            if bls.public_key == issuer {
-                signatures.push(sign(&issuer_sk(), bls.message()));
+            if bls.public_key == public_key {
+                signatures.push(sign(sk, bls.message()));
             }
         }
     }

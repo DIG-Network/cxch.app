@@ -14,9 +14,11 @@ import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "";
-export const CHAIN_ID = process.env.NEXT_PUBLIC_CHIA_CHAIN_ID ?? "chia:mainnet";
 
-// The CHIP-0002 method set exposed by Sage that this dApp relies on.
+// wXCH is mainnet-only.
+export const CHAIN_ID = "chia:mainnet";
+
+// The CHIP-0002 / Sage method set this dApp relies on.
 const REQUIRED_METHODS = [
   "chip0002_connect",
   "chip0002_chainId",
@@ -24,8 +26,7 @@ const REQUIRED_METHODS = [
   "chip0002_getAssetCoins",
   "chip0002_getAssetBalance",
   "chip0002_signCoinSpends",
-  "chip0002_signMessage",
-  "chia_getCurrentAddress",
+  "chia_getAddress",
 ];
 
 interface WalletContext {

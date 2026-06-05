@@ -4,7 +4,6 @@ use chia_puzzle_types::LineageProof;
 use chia_sdk_driver::{Cat, CatInfo};
 use serde::{Deserialize, Serialize};
 
-use crate::constants::Network;
 use crate::error::{Error, Result};
 use crate::spend::{StandardCoin, UnsignedSpendBundle, WxchCoin};
 use crate::tail::{standard_puzzle_hash, wxch_asset_id};
@@ -51,7 +50,6 @@ pub struct WrapRequestDto {
     pub mint_amount_mojos: u64,
     #[serde(deserialize_with = "de_u64")]
     pub fee_mojos: u64,
-    pub network: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -64,7 +62,6 @@ pub struct MeltRequestDto {
     pub melt_amount_mojos: u64,
     #[serde(deserialize_with = "de_u64")]
     pub fee_mojos: u64,
-    pub network: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -138,18 +135,6 @@ impl WxchCoinDto {
             cat,
             synthetic_key,
         })
-    }
-}
-
-impl WrapRequestDto {
-    pub fn network(&self) -> Result<Network> {
-        Network::parse(&self.network)
-    }
-}
-
-impl MeltRequestDto {
-    pub fn network(&self) -> Result<Network> {
-        Network::parse(&self.network)
     }
 }
 

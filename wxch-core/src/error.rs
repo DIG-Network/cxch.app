@@ -33,9 +33,6 @@ pub enum Error {
     #[error("the melt fee ({fee}) exceeds the total redeemable XCH ({redeemable})")]
     FeeExceedsRedeemable { fee: u64, redeemable: u64 },
 
-    #[error("unknown network '{0}' (expected 'mainnet' or 'testnet11')")]
-    UnknownNetwork(String),
-
     #[error("serde error: {0}")]
     Serde(String),
 }

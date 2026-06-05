@@ -87,16 +87,11 @@ pub fn address_to_puzzle_hash(address: String) -> std::result::Result<String, Js
     Ok(format!("0x{}", hex::encode(decoded.puzzle_hash.to_bytes())))
 }
 
-/// Converts a `0x`-prefixed puzzle hash into a bech32m address for the given
-/// network (`mainnet` or `testnet11`).
+/// Converts a `0x`-prefixed puzzle hash into a mainnet (`xch`) bech32m address.
 #[wasm_bindgen]
-pub fn puzzle_hash_to_address(
-    puzzle_hash: String,
-    network: String,
-) -> std::result::Result<String, JsValue> {
+pub fn puzzle_hash_to_address(puzzle_hash: String) -> std::result::Result<String, JsValue> {
     let ph = parse_bytes32(&puzzle_hash)?;
-    let net = Network::parse(&network)?;
-    let address = Address::new(ph, net.address_prefix().to_string())
+    let address = Address::new(ph, Network::Mainnet.address_prefix().to_string())
         .encode()
         .map_err(|e| JsError::new(&e.to_string()))?;
     Ok(address)
@@ -119,7 +114,7 @@ pub fn build_wrap_spends(request: JsValue) -> std::result::Result<JsValue, JsVal
         change_puzzle_hash: parse_bytes32(&dto.change_puzzle_hash)?,
         mint_amount: dto.mint_amount_mojos,
         fee: dto.fee_mojos,
-        network: dto.network()?,
+        network: Network::Mainnet,
     };
 
     let bundle = wrap::build_wrap(params)?;
@@ -148,7 +143,7 @@ pub fn build_melt_spends(request: JsValue) -> std::result::Result<JsValue, JsVal
         cat_change_puzzle_hash: parse_bytes32(&dto.cat_change_puzzle_hash)?,
         melt_amount: dto.melt_amount_mojos,
         fee: dto.fee_mojos,
-        network: dto.network()?,
+        network: Network::Mainnet,
     };
 
     let bundle = melt::build_melt(params)?;
