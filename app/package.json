@@ -1,0 +1,34 @@
+{
+  "name": "wxch-dapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "wXCH — a 1:1 wrapped-XCH CAT2 dApp on Chia (Sage + WalletConnect v2)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "build:wasm": "cd ../wxch-core && wasm-pack build --release --target web --out-dir ../app/wasm-pkg"
+  },
+  "dependencies": {
+    "next": "15.2.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@walletconnect/sign-client": "^2.19.0",
+    "@walletconnect/types": "^2.19.0",
+    "@reduxjs/toolkit": "^2.6.1",
+    "react-redux": "^9.2.0",
+    "qrcode.react": "^4.2.0",
+    "react-hot-toast": "^2.5.2"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "15.2.1"
+  }
+}

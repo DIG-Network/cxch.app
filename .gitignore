@@ -1,0 +1,19 @@
+# Rust
+/wxch-core/target
+**/*.rs.bk
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
