@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "wXCH — Wrapped XCH",
+  title: "cXCH — Wrapped XCH",
   description: "Wrap and melt XCH as a 1:1 CAT2 token on Chia.",
 };
 

@@ -15,7 +15,7 @@ import toast from "react-hot-toast";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "";
 
-// wXCH is mainnet-only.
+// cXCH is mainnet-only.
 export const CHAIN_ID = "chia:mainnet";
 
 // The CHIP-0002 / Sage method set this dApp relies on.
@@ -59,7 +59,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     SignClient.init({
       projectId: PROJECT_ID,
       metadata: {
-        name: "wXCH",
+        name: "cXCH",
         description: "Wrap and melt XCH as a 1:1 CAT2 token",
         url: typeof window !== "undefined" ? window.location.origin : "",
         icons: ["/icon.png"],

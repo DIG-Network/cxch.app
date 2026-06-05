@@ -56,7 +56,7 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
       }) as BuiltBundle;
 
       const status = await signAndBroadcast(request, built);
-      toast.success(`Wrapped ${amount} XCH → wXCH (${status})`);
+      toast.success(`Wrapped ${amount} XCH → cXCH (${status})`);
       setAmount("");
       onDone();
     } catch (e) {
@@ -69,9 +69,9 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
-      <h2 className="text-lg font-semibold">Wrap XCH → wXCH</h2>
+      <h2 className="text-lg font-semibold">Wrap XCH → cXCH</h2>
       <p className="mt-1 text-sm text-gray-400">
-        Lock XCH and receive an equal amount of wXCH, backed 1:1 by consensus.
+        Lock XCH and receive an equal amount of cXCH, backed 1:1 by consensus.
       </p>
       <div className="mt-4 flex gap-2">
         <input

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
-import { wxch_asset_id } from "../lib/wasm";
+import { cxch_asset_id } from "../lib/wasm";
 import { mojosToXch } from "../lib/format";
 
 function readBalance(response: unknown): bigint {
@@ -17,18 +17,18 @@ function readBalance(response: unknown): bigint {
 export function Balances({ refreshKey }: { refreshKey: number }) {
   const { session, request } = useSage();
   const [xch, setXch] = useState<bigint | null>(null);
-  const [wxch, setWxch] = useState<bigint | null>(null);
+  const [cxch, setCxch] = useState<bigint | null>(null);
 
   const refresh = useCallback(async () => {
     if (!session) return;
     try {
       const xchBalance = await request("chip0002_getAssetBalance", { type: null, assetId: null });
-      const wxchBalance = await request("chip0002_getAssetBalance", {
+      const cxchBalance = await request("chip0002_getAssetBalance", {
         type: "cat",
-        assetId: wxch_asset_id(),
+        assetId: cxch_asset_id(),
       });
       setXch(readBalance(xchBalance));
-      setWxch(readBalance(wxchBalance));
+      setCxch(readBalance(cxchBalance));
     } catch (e) {
       console.error(e);
       toast.error("Could not load balances");
@@ -48,8 +48,8 @@ export function Balances({ refreshKey }: { refreshKey: number }) {
         <div className="mt-1 text-2xl font-semibold">{xch === null ? "…" : mojosToXch(xch)}</div>
       </div>
       <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
-        <div className="text-xs uppercase text-gray-400">wXCH</div>
-        <div className="mt-1 text-2xl font-semibold">{wxch === null ? "…" : mojosToXch(wxch)}</div>
+        <div className="text-xs uppercase text-gray-400">cXCH</div>
+        <div className="mt-1 text-2xl font-semibold">{cxch === null ? "…" : mojosToXch(cxch)}</div>
       </div>
     </div>
   );

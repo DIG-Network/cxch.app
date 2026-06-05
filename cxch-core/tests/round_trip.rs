@@ -1,6 +1,6 @@
-//! Robust local CLVM-execution tests for wXCH.
+//! Robust local CLVM-execution tests for cXCH.
 //!
-//! Every test here builds spend bundles with the real `wxch-core` builders and
+//! Every test here builds spend bundles with the real `cxch-core` builders and
 //! runs them through the chia-wallet-sdk simulator, which actually executes the
 //! CLVM puzzles and validates: the CAT2 outer puzzle and ring announcements, the
 //! `everything_with_signature` TAIL, the melt `extra_delta`, the wrap/melt
@@ -14,12 +14,12 @@
 use chia_bls::{aggregate, SecretKey, Signature};
 use chia_protocol::{Coin, CoinSpend, SpendBundle};
 use chia_sdk_test::Simulator;
-use wxch_core::constants::{issuer_sk, Network};
-use wxch_core::error::Error;
-use wxch_core::melt::{build_melt, MeltParams};
-use wxch_core::spend::{StandardCoin, WxchCoin};
-use wxch_core::tail::{partial_signature, wxch_asset_id, wxch_outer_puzzle_hash};
-use wxch_core::wrap::{build_wrap, WrapParams};
+use cxch_core::constants::{issuer_sk, Network};
+use cxch_core::error::Error;
+use cxch_core::melt::{build_melt, MeltParams};
+use cxch_core::spend::{StandardCoin, CxchCoin};
+use cxch_core::tail::{partial_signature, cxch_asset_id, cxch_outer_puzzle_hash};
+use cxch_core::wrap::{build_wrap, WrapParams};
 
 const XCH: u64 = 1_000_000_000_000;
 const NET: Network = Network::Testnet11;
@@ -66,10 +66,10 @@ fn wrap_then_melt_round_trip() -> anyhow::Result<()> {
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, mint, 0))?;
 
     assert_eq!(wrap.cat_outputs.len(), 1);
-    let wxch = wrap.cat_outputs[0];
-    assert_eq!(wxch.coin.amount, mint);
-    assert_eq!(wxch.info.asset_id, wxch_asset_id());
-    assert_eq!(wxch.coin.puzzle_hash, wxch_outer_puzzle_hash(alice.puzzle_hash));
+    let cxch = wrap.cat_outputs[0];
+    assert_eq!(cxch.coin.amount, mint);
+    assert_eq!(cxch.info.asset_id, cxch_asset_id());
+    assert_eq!(cxch.coin.puzzle_hash, cxch_outer_puzzle_hash(alice.puzzle_hash));
 
     sim.spend_coins(wrap.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
@@ -78,7 +78,7 @@ fn wrap_then_melt_round_trip() -> anyhow::Result<()> {
     let melt_amount = 400_000_000_000;
     let fee = 1_000;
     let melt = build_melt(MeltParams {
-        wxch_coins: vec![WxchCoin { cat: wxch, synthetic_key: alice.pk }],
+        cxch_coins: vec![CxchCoin { cat: cxch, synthetic_key: alice.pk }],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
         recipient_puzzle_hash: alice.puzzle_hash,
         cat_change_puzzle_hash: alice.puzzle_hash,
@@ -113,12 +113,12 @@ fn full_signature_aggregation_validates() -> anyhow::Result<()> {
 
     let mint = XCH;
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, mint, 0))?;
-    let wxch = wrap.cat_outputs[0];
+    let cxch = wrap.cat_outputs[0];
     push_with_partial_sigs(&mut sim, wrap.coin_spends, &[&alice.sk, &issuer])?;
 
     let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH);
     let melt = build_melt(MeltParams {
-        wxch_coins: vec![WxchCoin { cat: wxch, synthetic_key: alice.pk }],
+        cxch_coins: vec![CxchCoin { cat: cxch, synthetic_key: alice.pk }],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
         recipient_puzzle_hash: alice.puzzle_hash,
         cat_change_puzzle_hash: alice.puzzle_hash,
@@ -128,8 +128,8 @@ fn full_signature_aggregation_validates() -> anyhow::Result<()> {
     })?;
     push_with_partial_sigs(&mut sim, melt.coin_spends, &[&alice.sk, &issuer])?;
 
-    // All wXCH burned, all XCH released.
-    assert!(sim.unspent_coins(wxch_outer_puzzle_hash(alice.puzzle_hash), false).is_empty());
+    // All cXCH burned, all XCH released.
+    assert!(sim.unspent_coins(cxch_outer_puzzle_hash(alice.puzzle_hash), false).is_empty());
     Ok(())
 }
 
@@ -147,14 +147,14 @@ fn wrap_peg_and_fee_are_exact_to_the_mojo() -> anyhow::Result<()> {
     let change = 2 * XCH - mint - fee;
 
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, mint, fee))?;
-    let wxch = wrap.cat_outputs[0];
-    assert_eq!(wxch.coin.amount, mint, "minted wXCH must equal requested mint, to the mojo");
+    let cxch = wrap.cat_outputs[0];
+    assert_eq!(cxch.coin.amount, mint, "minted cXCH must equal requested mint, to the mojo");
 
     sim.spend_coins(wrap.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
-    // Exactly `mint` wXCH exists, and the XCH change is exact.
-    let wxch_coins = sim.unspent_coins(wxch_outer_puzzle_hash(alice.puzzle_hash), false);
-    assert_eq!(wxch_coins.iter().map(|c| c.amount).sum::<u64>(), mint);
+    // Exactly `mint` cXCH exists, and the XCH change is exact.
+    let cxch_coins = sim.unspent_coins(cxch_outer_puzzle_hash(alice.puzzle_hash), false);
+    assert_eq!(cxch_coins.iter().map(|c| c.amount).sum::<u64>(), mint);
     let xch_coins = sim.unspent_coins(alice.puzzle_hash, false);
     assert!(xch_coins.iter().any(|c| c.amount == change), "change must be exact");
     Ok(())
@@ -184,7 +184,7 @@ fn fungibility_canary_same_asset_id_different_inner() -> anyhow::Result<()> {
 
     // Two independent wraps differ only in inner puzzle hash, never in asset id.
     assert_eq!(a.info.asset_id, b.info.asset_id);
-    assert_eq!(a.info.asset_id, wxch_asset_id());
+    assert_eq!(a.info.asset_id, cxch_asset_id());
     assert_ne!(a.coin.puzzle_hash, b.coin.puzzle_hash);
     Ok(())
 }
@@ -199,7 +199,7 @@ fn wrap_with_two_funder_coins() -> anyhow::Result<()> {
     let alice = sim.bls(XCH);
     let bob = sim.bls(XCH);
 
-    // Both Alice and Bob fund the mint; the wXCH goes to Alice. This exercises
+    // Both Alice and Bob fund the mint; the cXCH goes to Alice. This exercises
     // the inter-coin announcement binding in CLVM.
     let mint = XCH + XCH / 2;
     let wrap = build_wrap(WrapParams {
@@ -217,19 +217,19 @@ fn wrap_with_two_funder_coins() -> anyhow::Result<()> {
 
     push_with_partial_sigs(&mut sim, wrap.coin_spends, &[&alice.sk, &bob.sk, &issuer_sk()])?;
 
-    let wxch = sim.unspent_coins(wxch_outer_puzzle_hash(alice.puzzle_hash), false);
-    assert_eq!(wxch.iter().map(|c| c.amount).sum::<u64>(), mint);
+    let cxch = sim.unspent_coins(cxch_outer_puzzle_hash(alice.puzzle_hash), false);
+    assert_eq!(cxch.iter().map(|c| c.amount).sum::<u64>(), mint);
     Ok(())
 }
 
 #[test]
-fn melt_with_two_wxch_coins() -> anyhow::Result<()> {
+fn melt_with_two_cxch_coins() -> anyhow::Result<()> {
     let mut sim = Simulator::new();
     let alice = sim.bls(3 * XCH);
 
-    // Wrap twice to produce two distinct wXCH coins at the same puzzle hash.
+    // Wrap twice to produce two distinct cXCH coins at the same puzzle hash.
     let wrap1 = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, XCH, 0))?;
-    let wxch1 = wrap1.cat_outputs[0];
+    let cxch1 = wrap1.cat_outputs[0];
     sim.spend_coins(wrap1.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
     let change1 = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, 2 * XCH);
@@ -241,16 +241,16 @@ fn melt_with_two_wxch_coins() -> anyhow::Result<()> {
         fee: 0,
         network: NET,
     })?;
-    let wxch2 = wrap2.cat_outputs[0];
+    let cxch2 = wrap2.cat_outputs[0];
     sim.spend_coins(wrap2.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
     let anchor = Coin::new(change1.coin_id(), alice.puzzle_hash, XCH);
 
-    // Melt both wXCH coins (the ring spans two CATs; the TAIL is revealed once).
+    // Melt both cXCH coins (the ring spans two CATs; the TAIL is revealed once).
     let melt = build_melt(MeltParams {
-        wxch_coins: vec![
-            WxchCoin { cat: wxch1, synthetic_key: alice.pk },
-            WxchCoin { cat: wxch2, synthetic_key: alice.pk },
+        cxch_coins: vec![
+            CxchCoin { cat: cxch1, synthetic_key: alice.pk },
+            CxchCoin { cat: cxch2, synthetic_key: alice.pk },
         ],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
         recipient_puzzle_hash: alice.puzzle_hash,
@@ -261,7 +261,7 @@ fn melt_with_two_wxch_coins() -> anyhow::Result<()> {
     })?;
     push_with_partial_sigs(&mut sim, melt.coin_spends, &[&alice.sk, &issuer_sk()])?;
 
-    assert!(sim.unspent_coins(wxch_outer_puzzle_hash(alice.puzzle_hash), false).is_empty());
+    assert!(sim.unspent_coins(cxch_outer_puzzle_hash(alice.puzzle_hash), false).is_empty());
     Ok(())
 }
 
@@ -271,12 +271,12 @@ fn melt_entire_balance_no_change() -> anyhow::Result<()> {
     let alice = sim.bls(2 * XCH);
 
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, XCH, 0))?;
-    let wxch = wrap.cat_outputs[0];
+    let cxch = wrap.cat_outputs[0];
     sim.spend_coins(wrap.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
     let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH);
     let melt = build_melt(MeltParams {
-        wxch_coins: vec![WxchCoin { cat: wxch, synthetic_key: alice.pk }],
+        cxch_coins: vec![CxchCoin { cat: cxch, synthetic_key: alice.pk }],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
         recipient_puzzle_hash: alice.puzzle_hash,
         cat_change_puzzle_hash: alice.puzzle_hash,
@@ -286,7 +286,7 @@ fn melt_entire_balance_no_change() -> anyhow::Result<()> {
     })?;
     assert!(melt.cat_outputs.is_empty());
     sim.spend_coins(melt.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
-    assert!(sim.unspent_coins(wxch_outer_puzzle_hash(alice.puzzle_hash), false).is_empty());
+    assert!(sim.unspent_coins(cxch_outer_puzzle_hash(alice.puzzle_hash), false).is_empty());
     Ok(())
 }
 
@@ -315,11 +315,11 @@ fn melt_rejects_insufficient_cat() {
     let mut sim = Simulator::new();
     let alice = sim.bls(XCH);
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, XCH, 0)).unwrap();
-    let wxch = wrap.cat_outputs[0];
+    let cxch = wrap.cat_outputs[0];
     let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH);
 
     let err = build_melt(MeltParams {
-        wxch_coins: vec![WxchCoin { cat: wxch, synthetic_key: alice.pk }],
+        cxch_coins: vec![CxchCoin { cat: cxch, synthetic_key: alice.pk }],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
         recipient_puzzle_hash: alice.puzzle_hash,
         cat_change_puzzle_hash: alice.puzzle_hash,
@@ -336,12 +336,12 @@ fn melt_rejects_fee_exceeding_redeemable() {
     let mut sim = Simulator::new();
     let alice = sim.bls(XCH);
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, XCH, 0)).unwrap();
-    let wxch = wrap.cat_outputs[0];
+    let cxch = wrap.cat_outputs[0];
     let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, 1_000);
 
     // Anchor (1000) + melt (1000) = 2000 redeemable, but fee is 5000.
     let err = build_melt(MeltParams {
-        wxch_coins: vec![WxchCoin { cat: wxch, synthetic_key: alice.pk }],
+        cxch_coins: vec![CxchCoin { cat: cxch, synthetic_key: alice.pk }],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
         recipient_puzzle_hash: alice.puzzle_hash,
         cat_change_puzzle_hash: alice.puzzle_hash,

@@ -594,6 +594,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "cxch-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chia-bls 0.26.0",
+ "chia-protocol",
+ "chia-puzzle-types",
+ "chia-puzzles",
+ "chia-sdk-driver",
+ "chia-sdk-signer",
+ "chia-sdk-test",
+ "chia-sdk-types",
+ "chia-sdk-utils",
+ "clvm-traits",
+ "clvm-utils",
+ "clvmr",
+ "getrandom 0.2.17",
+ "hex",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "thiserror 1.0.69",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1826,32 +1852,6 @@ dependencies = [
  "serde_json",
  "unicode-xid",
  "wasmparser",
-]
-
-[[package]]
-name = "wxch-core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chia-bls 0.26.0",
- "chia-protocol",
- "chia-puzzle-types",
- "chia-puzzles",
- "chia-sdk-driver",
- "chia-sdk-signer",
- "chia-sdk-test",
- "chia-sdk-types",
- "chia-sdk-utils",
- "clvm-traits",
- "clvm-utils",
- "clvmr",
- "getrandom 0.2.17",
- "hex",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "thiserror 1.0.69",
- "wasm-bindgen",
 ]
 
 [[package]]

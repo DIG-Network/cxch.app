@@ -3,7 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
-import { build_melt_spends, wxch_asset_id } from "../lib/wasm";
+import { build_melt_spends, cxch_asset_id } from "../lib/wasm";
 import { xchToMojos } from "../lib/format";
 import {
   buildKeyResolver,
@@ -36,8 +36,8 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
       const resolver = buildKeyResolver(await getPublicKeys(request));
       const recipientPuzzleHash = await getReceivePuzzleHash(request);
 
-      // Select wXCH (CAT) coins to burn.
-      const rawCats = await getAssetCoins(request, "cat", wxch_asset_id());
+      // Select cXCH (CAT) coins to burn.
+      const rawCats = await getAssetCoins(request, "cat", cxch_asset_id());
       const cats = rawCats.map((raw) => {
         const coin = normalizeCoin(raw);
         return { raw, coin, amount: coin.amount };
@@ -50,9 +50,9 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
       const rawXch = (await getAssetCoins(request, null, null)).map(normalizeCoin);
       const anchors = selectCoins(rawXch, DEFAULT_FEE > 0n ? DEFAULT_FEE : 1n);
 
-      const wxch_coins = selectedCats.map(({ raw, coin }) => {
+      const cxch_coins = selectedCats.map(({ raw, coin }) => {
         const synthetic_key = resolver(coin.puzzle_hash);
-        if (!synthetic_key) throw new Error(`No known key for wXCH coin at ${coin.puzzle_hash}`);
+        if (!synthetic_key) throw new Error(`No known key for cXCH coin at ${coin.puzzle_hash}`);
         const rawObj = raw as Record<string, unknown>;
         const lineage_proof = normalizeLineageProof(
           rawObj.lineageProof ?? rawObj.lineage_proof
@@ -67,7 +67,7 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
       });
 
       const built = build_melt_spends({
-        wxch_coins,
+        cxch_coins,
         anchor_coins,
         recipient_puzzle_hash: recipientPuzzleHash,
         cat_change_puzzle_hash: recipientPuzzleHash,
@@ -76,7 +76,7 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
       }) as BuiltBundle;
 
       const status = await signAndBroadcast(request, built);
-      toast.success(`Melted ${amount} wXCH → XCH (${status})`);
+      toast.success(`Melted ${amount} cXCH → XCH (${status})`);
       setAmount("");
       onDone();
     } catch (e) {
@@ -89,9 +89,9 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
-      <h2 className="text-lg font-semibold">Melt wXCH → XCH</h2>
+      <h2 className="text-lg font-semibold">Melt cXCH → XCH</h2>
       <p className="mt-1 text-sm text-gray-400">
-        Burn wXCH and release the same amount of native XCH (minus the fee).
+        Burn cXCH and release the same amount of native XCH (minus the fee).
       </p>
       <div className="mt-4 flex gap-2">
         <input

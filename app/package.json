@@ -1,14 +1,14 @@
 {
-  "name": "wxch-dapp",
+  "name": "cxch-dapp",
   "version": "0.1.0",
   "private": true,
-  "description": "wXCH — a 1:1 wrapped-XCH CAT2 dApp on Chia (Sage + WalletConnect v2)",
+  "description": "cXCH — a 1:1 wrapped-XCH CAT2 dApp on Chia (Sage + WalletConnect v2)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:wasm": "cd ../wxch-core && wasm-pack build --release --target web --out-dir ../app/wasm-pkg"
+    "build:wasm": "cd ../cxch-core && wasm-pack build --release --target web --out-dir ../app/wasm-pkg"
   },
   "dependencies": {
     "next": "15.2.1",

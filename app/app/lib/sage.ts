@@ -1,7 +1,7 @@
 "use client";
 
 // Helpers that adapt Sage / CHIP-0002 WalletConnect responses into the shapes
-// the wxch-core WASM module expects, and back into the shapes Sage and
+// the cxch-core WASM module expects, and back into the shapes Sage and
 // coinset.org expect for signing and broadcasting.
 //
 // NOTE ON WIRE FORMATS: different Chia wallets have historically used slightly
