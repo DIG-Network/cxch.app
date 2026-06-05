@@ -1,7 +1,7 @@
 "use client";
 
 // Minimal client for the coinset.org full-node REST API used to broadcast spend
-// bundles and poll for confirmation.
+// bundles and poll for confirmation (mirrors the shielded-wallet reference).
 import type { CoinSpendJson } from "./sage";
 
 const API = process.env.NEXT_PUBLIC_COINSET_API ?? "https://api.coinset.org";
@@ -31,14 +31,105 @@ export async function pushTx(bundle: SpendBundleJson): Promise<PushTxResult> {
   return data;
 }
 
+export interface CoinRecord {
+  coin: { parent_coin_info: string; puzzle_hash: string; amount: number };
+  confirmed_block_index: number;
+  spent_block_index: number;
+  spent: boolean;
+}
+
+function strip0x(hex: string): string {
+  return hex.startsWith("0x") ? hex.slice(2) : hex;
+}
+
 /** Looks up a coin record by id, returning null if it is not yet known. */
-export async function getCoinRecord(coinId: string): Promise<unknown | null> {
+export async function getCoinRecord(coinId: string): Promise<CoinRecord | null> {
   const response = await fetch(`${API}/get_coin_record_by_name`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name: coinId }),
+    body: JSON.stringify({ name: strip0x(coinId) }),
   });
   if (!response.ok) return null;
-  const data = (await response.json()) as { coin_record?: unknown };
+  const data = (await response.json()) as { coin_record?: CoinRecord };
   return data.coin_record ?? null;
+}
+
+/** Current chain peak height. */
+export async function getPeakHeight(): Promise<number> {
+  const response = await fetch(`${API}/get_blockchain_state`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) return 0;
+  const data = (await response.json()) as {
+    blockchain_state?: { peak?: { height?: number } };
+  };
+  return data.blockchain_state?.peak?.height ?? 0;
+}
+
+// ---- confirmation tracking --------------------------------------------------
+
+export interface ConfirmProgress {
+  /** "pending" until the spend reaches `confirmations`; then "confirmed"; "timeout" if it never did. */
+  status: "pending" | "confirmed" | "timeout";
+  /** Confirmations so far (peak - eventHeight + 1), 0 until the spend lands in a block. */
+  confirmations: number;
+  /** Block height the watched coin was spent at. */
+  eventHeight?: number;
+  /** Current chain peak height. */
+  peakHeight?: number;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Polls coinset until `coinId` (an INPUT coin of the broadcast bundle) is
+ * SPENT on-chain and has `confirmations` confirmations. Watching an input
+ * coin's spent height is a uniform "did the bundle land?" signal for both
+ * wrap and melt. Transient RPC errors are swallowed and retried until the
+ * timeout; calls `onProgress` after each poll so the UI can show a live count.
+ */
+export async function waitForConfirmation(
+  coinId: string,
+  opts: {
+    confirmations?: number;
+    timeoutMs?: number;
+    intervalMs?: number;
+    onProgress?: (p: ConfirmProgress) => void;
+  } = {}
+): Promise<ConfirmProgress> {
+  const want = Math.max(1, opts.confirmations ?? 1);
+  const timeoutMs = opts.timeoutMs ?? 8 * 60_000;
+  const intervalMs = opts.intervalMs ?? 5_000;
+  const start = Date.now();
+  let last: ConfirmProgress = { status: "pending", confirmations: 0 };
+  opts.onProgress?.(last);
+
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const rec = await getCoinRecord(coinId);
+      const eventHeight = rec?.spent_block_index ?? 0;
+      if (eventHeight > 0) {
+        const peakHeight = await getPeakHeight();
+        const confirmations = Math.max(0, peakHeight - eventHeight + 1);
+        last = {
+          status: confirmations >= want ? "confirmed" : "pending",
+          confirmations,
+          eventHeight,
+          peakHeight,
+        };
+        opts.onProgress?.(last);
+        if (confirmations >= want) return last;
+      }
+    } catch {
+      // transient — keep polling
+    }
+    await sleep(intervalMs);
+  }
+  last = { ...last, status: "timeout" };
+  opts.onProgress?.(last);
+  return last;
 }

@@ -23,3 +23,9 @@ export function mojosToXch(mojos: bigint): string {
 export function with0x(hex: string): string {
   return hex.startsWith("0x") ? hex : `0x${hex}`;
 }
+
+/** Strips a leading 0x. Sage's chip0002_* params reject prefixed hex
+ * ("Hex decoding error: Invalid character 'x' at position 1"). */
+export function strip0x(hex: string): string {
+  return hex.startsWith("0x") ? hex.slice(2) : hex;
+}

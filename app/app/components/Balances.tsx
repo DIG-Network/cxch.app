@@ -5,38 +5,39 @@ import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
 import { cxch_asset_id } from "../lib/wasm";
 import { mojosToXch } from "../lib/format";
-
-function readBalance(response: unknown): bigint {
-  if (response === null || response === undefined) return 0n;
-  if (typeof response === "number" || typeof response === "string") return BigInt(response);
-  const obj = response as Record<string, unknown>;
-  const value = obj.spendable ?? obj.confirmed ?? obj.balance ?? 0;
-  return BigInt(value as never);
-}
+import { getAssetCoins, sumCoinAmounts } from "../lib/sage";
 
 export function Balances({ refreshKey }: { refreshKey: number }) {
   const { session, request } = useSage();
   const [xch, setXch] = useState<bigint | null>(null);
   const [cxch, setCxch] = useState<bigint | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!session) return;
-    try {
-      const xchBalance = await request("chip0002_getAssetBalance", { type: null, assetId: null });
-      const cxchBalance = await request("chip0002_getAssetBalance", {
-        type: "cat",
-        assetId: cxch_asset_id(),
-      });
-      setXch(readBalance(xchBalance));
-      setCxch(readBalance(cxchBalance));
-    } catch (e) {
-      console.error(e);
-      toast.error("Could not load balances");
-    }
-  }, [session, request]);
+  const refresh = useCallback(
+    async (silent = false) => {
+      if (!session) return;
+      try {
+        // Sum the wallet's spendable coins instead of trusting
+        // chip0002_getAssetBalance — the same approach as the shielded-wallet
+        // reference, and it always matches what wrap/melt can actually spend.
+        const xchCoins = await getAssetCoins(request, null, null);
+        const cxchCoins = await getAssetCoins(request, "cat", cxch_asset_id());
+        setXch(sumCoinAmounts(xchCoins));
+        setCxch(sumCoinAmounts(cxchCoins));
+      } catch (e) {
+        console.error(e);
+        // Background polls fail quietly (transient wallet/relay blips) —
+        // only the initial load surfaces a toast.
+        if (!silent) toast.error("Could not load balances");
+      }
+    },
+    [session, request]
+  );
 
   useEffect(() => {
     refresh();
+    // Keep balances live: re-poll the wallet every ~10s while connected.
+    const id = setInterval(() => refresh(true), 10_000);
+    return () => clearInterval(id);
   }, [refresh, refreshKey]);
 
   if (!session) return null;

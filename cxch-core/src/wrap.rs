@@ -1,8 +1,9 @@
 use chia_protocol::Bytes32;
+use chia_puzzle_types::Memos;
 use chia_sdk_driver::{Cat, SpendContext, StandardLayer};
 use chia_sdk_types::{announcement_id, Conditions};
 
-use crate::constants::{issuer_pk, Network};
+use crate::constants::{dev_fee, dev_fee_puzzle_hash, issuer_pk, Network};
 use crate::error::{Error, Result};
 use crate::spend::{StandardCoin, UnsignedSpendBundle};
 use crate::tail::{issuer_partial_signature, cxch_asset_id};
@@ -41,9 +42,12 @@ pub fn build_wrap(params: WrapParams) -> Result<UnsignedSpendBundle> {
     }
 
     let total_in: u64 = params.xch_coins.iter().map(|c| c.coin.amount).sum();
+    // 0.1% dev fee, paid as an XCH output in the same bundle.
+    let dev_fee_amount = dev_fee(params.mint_amount);
     let total_out = params
         .mint_amount
         .checked_add(params.fee)
+        .and_then(|v| v.checked_add(dev_fee_amount))
         .ok_or(Error::ZeroAmount)?;
     if total_in < total_out {
         return Err(Error::InsufficientFunds {
@@ -75,6 +79,10 @@ pub fn build_wrap(params: WrapParams) -> Result<UnsignedSpendBundle> {
     )?;
 
     let mut funder_conditions = issue_cat;
+    if dev_fee_amount > 0 {
+        funder_conditions =
+            funder_conditions.create_coin(dev_fee_puzzle_hash(), dev_fee_amount, Memos::None);
+    }
     if change > 0 {
         let change_hint = ctx.hint(params.change_puzzle_hash)?;
         funder_conditions =

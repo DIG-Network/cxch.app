@@ -65,6 +65,29 @@ impl Network {
     }
 }
 
+/// The 0.1% dev fee, in basis points, applied to every wrap and melt built by
+/// this dApp. The fee is paid as an ordinary XCH output to [`DEV_FEE_ADDRESS`]
+/// inside the same spend bundle. This is a dApp builder convention, NOT a
+/// protocol requirement — bundles built elsewhere don't need it.
+pub const DEV_FEE_BASIS_POINTS: u64 = 10;
+
+/// The dev fee recipient address.
+pub const DEV_FEE_ADDRESS: &str =
+    "xch1qza35raa2yezce9kvf5z76qgrajpa8dlv0eg63q7dpel3h78hgystyyehc";
+
+/// The dev fee recipient puzzle hash (decoded from [`DEV_FEE_ADDRESS`]).
+pub fn dev_fee_puzzle_hash() -> Bytes32 {
+    chia_sdk_utils::Address::decode(DEV_FEE_ADDRESS)
+        .expect("dev fee address is a valid bech32m address")
+        .puzzle_hash
+}
+
+/// The dev fee in mojos for a wrap/melt of `amount` mojos: 0.1%, floored.
+/// Amounts under 1000 mojos round to a fee of zero (no output is added).
+pub fn dev_fee(amount: u64) -> u64 {
+    ((amount as u128 * DEV_FEE_BASIS_POINTS as u128) / 10_000) as u64
+}
+
 /// Compile-time hex literal decoder for fixed 32-byte arrays.
 const fn hex_lit(hex: &[u8; 64]) -> [u8; 32] {
     let mut out = [0u8; 32];

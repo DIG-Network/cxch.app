@@ -5,7 +5,7 @@ use chia_sdk_driver::{Cat, CatSpend, SpendContext, SpendWithConditions, Standard
 use chia_sdk_types::{announcement_id, Conditions};
 use clvmr::NodePtr;
 
-use crate::constants::{issuer_pk, Network};
+use crate::constants::{dev_fee, dev_fee_puzzle_hash, issuer_pk, Network};
 use crate::error::{Error, Result};
 use crate::spend::{StandardCoin, UnsignedSpendBundle, CxchCoin};
 use crate::tail::issuer_partial_signature;
@@ -65,13 +65,19 @@ pub fn build_melt(params: MeltParams) -> Result<UnsignedSpendBundle> {
     let redeemable = anchor_total
         .checked_add(params.melt_amount)
         .ok_or(Error::ZeroAmount)?;
-    if params.fee >= redeemable {
+    // 0.1% dev fee, paid as an XCH output from the released mojos.
+    let dev_fee_amount = dev_fee(params.melt_amount);
+    let deductions = params
+        .fee
+        .checked_add(dev_fee_amount)
+        .ok_or(Error::ZeroAmount)?;
+    if deductions >= redeemable {
         return Err(Error::FeeExceedsRedeemable {
-            fee: params.fee,
+            fee: deductions,
             redeemable,
         });
     }
-    let xch_out = redeemable - params.fee;
+    let xch_out = redeemable - deductions;
 
     let mut ctx = SpendContext::new();
     let tail = ctx.curry(EverythingWithSignatureTailArgs::new(issuer_pk()))?;
@@ -110,6 +116,10 @@ pub fn build_melt(params: MeltParams) -> Result<UnsignedSpendBundle> {
         .create_coin(params.recipient_puzzle_hash, xch_out, Memos::None)
         .create_coin_announcement(ANCHOR_ANNOUNCEMENT.to_vec().into())
         .assert_coin_announcement(announcement_id(primary_cat_coin_id, MELT_ANNOUNCEMENT));
+    if dev_fee_amount > 0 {
+        anchor0_conditions =
+            anchor0_conditions.create_coin(dev_fee_puzzle_hash(), dev_fee_amount, Memos::None);
+    }
     if params.fee > 0 {
         anchor0_conditions = anchor0_conditions.reserve_fee(params.fee);
     }

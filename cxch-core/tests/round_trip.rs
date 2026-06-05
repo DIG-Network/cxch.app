@@ -14,7 +14,7 @@
 use chia_bls::{aggregate, SecretKey, Signature};
 use chia_protocol::{Coin, CoinSpend, SpendBundle};
 use chia_sdk_test::Simulator;
-use cxch_core::constants::{issuer_sk, Network};
+use cxch_core::constants::{dev_fee, dev_fee_puzzle_hash, issuer_sk, Network};
 use cxch_core::error::Error;
 use cxch_core::melt::{build_melt, MeltParams};
 use cxch_core::spend::{StandardCoin, CxchCoin};
@@ -73,7 +73,8 @@ fn wrap_then_melt_round_trip() -> anyhow::Result<()> {
 
     sim.spend_coins(wrap.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
-    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH);
+    // The wrap change is reduced by the 0.1% dev fee paid in the same bundle.
+    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH - dev_fee(mint));
 
     let melt_amount = 400_000_000_000;
     let fee = 1_000;
@@ -92,7 +93,7 @@ fn wrap_then_melt_round_trip() -> anyhow::Result<()> {
 
     sim.spend_coins(melt.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
-    let expected = XCH + melt_amount - fee;
+    let expected = (XCH - dev_fee(mint)) + melt_amount - fee - dev_fee(melt_amount);
     let xch_coins = sim.unspent_coins(alice.puzzle_hash, false);
     assert!(
         xch_coins.iter().any(|c| c.amount == expected),
@@ -116,7 +117,8 @@ fn full_signature_aggregation_validates() -> anyhow::Result<()> {
     let cxch = wrap.cat_outputs[0];
     push_with_partial_sigs(&mut sim, wrap.coin_spends, &[&alice.sk, &issuer])?;
 
-    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH);
+    // The wrap change is reduced by the 0.1% dev fee paid in the same bundle.
+    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH - dev_fee(mint));
     let melt = build_melt(MeltParams {
         cxch_coins: vec![CxchCoin { cat: cxch, synthetic_key: alice.pk }],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
@@ -144,7 +146,7 @@ fn wrap_peg_and_fee_are_exact_to_the_mojo() -> anyhow::Result<()> {
 
     let mint = 1_234_567_890_123;
     let fee = 100_000_000;
-    let change = 2 * XCH - mint - fee;
+    let change = 2 * XCH - mint - fee - dev_fee(mint);
 
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, mint, fee))?;
     let cxch = wrap.cat_outputs[0];
@@ -157,6 +159,10 @@ fn wrap_peg_and_fee_are_exact_to_the_mojo() -> anyhow::Result<()> {
     assert_eq!(cxch_coins.iter().map(|c| c.amount).sum::<u64>(), mint);
     let xch_coins = sim.unspent_coins(alice.puzzle_hash, false);
     assert!(xch_coins.iter().any(|c| c.amount == change), "change must be exact");
+
+    // The 0.1% dev fee coin exists, to the mojo.
+    let dev_coins = sim.unspent_coins(dev_fee_puzzle_hash(), false);
+    assert_eq!(dev_coins.iter().map(|c| c.amount).sum::<u64>(), dev_fee(mint));
     Ok(())
 }
 
@@ -232,7 +238,7 @@ fn melt_with_two_cxch_coins() -> anyhow::Result<()> {
     let cxch1 = wrap1.cat_outputs[0];
     sim.spend_coins(wrap1.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
-    let change1 = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, 2 * XCH);
+    let change1 = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, 2 * XCH - dev_fee(XCH));
     let wrap2 = build_wrap(WrapParams {
         xch_coins: vec![StandardCoin { coin: change1, synthetic_key: alice.pk }],
         recipient_puzzle_hash: alice.puzzle_hash,
@@ -244,7 +250,7 @@ fn melt_with_two_cxch_coins() -> anyhow::Result<()> {
     let cxch2 = wrap2.cat_outputs[0];
     sim.spend_coins(wrap2.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
-    let anchor = Coin::new(change1.coin_id(), alice.puzzle_hash, XCH);
+    let anchor = Coin::new(change1.coin_id(), alice.puzzle_hash, XCH - 2 * dev_fee(XCH));
 
     // Melt both cXCH coins (the ring spans two CATs; the TAIL is revealed once).
     let melt = build_melt(MeltParams {
@@ -274,7 +280,7 @@ fn melt_entire_balance_no_change() -> anyhow::Result<()> {
     let cxch = wrap.cat_outputs[0];
     sim.spend_coins(wrap.coin_spends, &[alice.sk.clone(), issuer_sk()])?;
 
-    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH);
+    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH - dev_fee(XCH));
     let melt = build_melt(MeltParams {
         cxch_coins: vec![CxchCoin { cat: cxch, synthetic_key: alice.pk }],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
@@ -313,7 +319,8 @@ fn wrap_rejects_insufficient_funds() {
 #[test]
 fn melt_rejects_insufficient_cat() {
     let mut sim = Simulator::new();
-    let alice = sim.bls(XCH);
+    // 2×XCH so the funder also covers the 0.1% dev fee on a 1 XCH mint.
+    let alice = sim.bls(2 * XCH);
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, XCH, 0)).unwrap();
     let cxch = wrap.cat_outputs[0];
     let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH);
@@ -334,7 +341,8 @@ fn melt_rejects_insufficient_cat() {
 #[test]
 fn melt_rejects_fee_exceeding_redeemable() {
     let mut sim = Simulator::new();
-    let alice = sim.bls(XCH);
+    // 2×XCH so the funder also covers the 0.1% dev fee on a 1 XCH mint.
+    let alice = sim.bls(2 * XCH);
     let wrap = build_wrap(wrap_params(alice.coin, alice.pk, alice.puzzle_hash, XCH, 0)).unwrap();
     let cxch = wrap.cat_outputs[0];
     let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, 1_000);

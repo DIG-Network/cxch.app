@@ -10,9 +10,6 @@ export function AssetId() {
   const assetId = cxch_asset_id();
   const [copied, setCopied] = useState(false);
 
-  // Show a shortened form, but copy the full value.
-  const short = `${assetId.slice(0, 10)}…${assetId.slice(-8)}`;
-
   async function copy() {
     try {
       await navigator.clipboard.writeText(assetId);
@@ -36,8 +33,8 @@ export function AssetId() {
           {copied ? "Copied ✓" : "Click to copy"}
         </span>
       </div>
-      <div className="mt-1 font-mono text-sm break-all sm:hidden">{assetId}</div>
-      <div className="mt-1 hidden font-mono text-lg sm:block">{short}</div>
+      {/* Always show the FULL asset id — never truncated. */}
+      <div className="mt-1 break-all font-mono text-sm">{assetId}</div>
     </button>
   );
 }

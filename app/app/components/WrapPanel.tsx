@@ -3,48 +3,64 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
-import { build_wrap_spends } from "../lib/wasm";
-import { xchToMojos } from "../lib/format";
+import { build_wrap_spends, puzzle_hash_to_address } from "../lib/wasm";
+import { mojosToXch, xchToMojos } from "../lib/format";
 import {
   buildKeyResolver,
+  extractCoinName,
   getAssetCoins,
   getPublicKeys,
   getReceivePuzzleHash,
   normalizeCoin,
   selectCoins,
 } from "../lib/sage";
-import { signAndBroadcast, type BuiltBundle } from "../lib/flow";
+import { type BuiltBundle } from "../lib/flow";
+import { useSpendConfirm, type PreparedSpend } from "./SpendConfirm";
 
 const DEFAULT_FEE = BigInt(process.env.NEXT_PUBLIC_DEFAULT_FEE_MOJOS ?? "100000000");
 
+/** 0.1% dev fee (10 basis points, floored) — must mirror cxch-core. */
+function devFee(amount: bigint): bigint {
+  return (amount * 10n) / 10_000n;
+}
+
 export function WrapPanel({ onDone }: { onDone: () => void }) {
   const { session, request } = useSage();
+  const { runSpend, active } = useSpendConfirm();
   const [amount, setAmount] = useState("");
-  const [busy, setBusy] = useState(false);
 
   async function wrap() {
     if (!session) {
       toast.error("Connect Sage first");
       return;
     }
-    setBusy(true);
+    let mintMojos: bigint;
     try {
-      const mintMojos = xchToMojos(amount);
+      mintMojos = xchToMojos(amount);
       if (mintMojos <= 0n) throw new Error("Enter an amount greater than zero");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enter a valid amount");
+      return;
+    }
 
+    const prepare = async (report: (s: string) => void): Promise<PreparedSpend> => {
+      report("Fetching wallet keys");
       const resolver = buildKeyResolver(await getPublicKeys(request));
       const recipientPuzzleHash = await getReceivePuzzleHash(request);
 
+      report("Selecting XCH coins");
       const rawCoins = await getAssetCoins(request, null, null);
-      const coins = rawCoins.map(normalizeCoin);
-      const selected = selectCoins(coins, mintMojos + DEFAULT_FEE);
+      const coins = rawCoins.map((raw) => ({ raw, ...normalizeCoin(raw) }));
+      // Inputs must also cover the 0.1% dev fee the builder adds.
+      const selected = selectCoins(coins, mintMojos + DEFAULT_FEE + devFee(mintMojos));
 
-      const xch_coins = selected.map((coin) => {
-        const synthetic_key = resolver(coin.puzzle_hash);
+      report("Building spend bundle");
+      const xch_coins = selected.map(({ parent_coin_info, puzzle_hash, amount: amt }) => {
+        const synthetic_key = resolver(puzzle_hash);
         if (!synthetic_key) {
-          throw new Error(`No known key for coin at ${coin.puzzle_hash}`);
+          throw new Error(`No known key for coin at ${puzzle_hash}`);
         }
-        return { coin, synthetic_key };
+        return { coin: { parent_coin_info, puzzle_hash, amount: amt }, synthetic_key };
       });
 
       const built = build_wrap_spends({
@@ -55,15 +71,28 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
         fee_mojos: DEFAULT_FEE.toString(),
       }) as BuiltBundle;
 
-      const status = await signAndBroadcast(request, built);
-      toast.success(`Wrapped ${amount} XCH → cXCH (${status})`);
+      return {
+        built,
+        // Watch the first funder coin's SPEND on coinset — bundle landed.
+        watchCoinId: extractCoinName(selected[0].raw),
+        summary: [
+          { label: "Action", value: "Wrap XCH → cXCH" },
+          { label: "Mint", value: `${amount} cXCH`, strong: true },
+          { label: "XCH locked", value: `${amount} XCH` },
+          { label: "Fee", value: `${mojosToXch(DEFAULT_FEE)} XCH` },
+          { label: "Dev fee (0.1%)", value: `${mojosToXch(devFee(mintMojos))} XCH` },
+          { label: "Recipient", value: puzzle_hash_to_address(recipientPuzzleHash) },
+        ],
+      };
+    };
+
+    try {
+      await runSpend({ title: `Wrap ${amount} XCH`, prepare });
+      toast.success(`Wrapped ${amount} XCH → cXCH`);
       setAmount("");
       onDone();
-    } catch (e) {
-      console.error(e);
-      toast.error(e instanceof Error ? e.message : "Wrap failed");
-    } finally {
-      setBusy(false);
+    } catch {
+      /* the modal already surfaced the error / cancel */
     }
   }
 
@@ -83,10 +112,10 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
         />
         <button
           onClick={wrap}
-          disabled={busy || !session}
+          disabled={active || !session}
           className="rounded-lg bg-[var(--accent)] px-5 py-2 font-semibold text-black disabled:opacity-60"
         >
-          {busy ? "Wrapping…" : "Wrap"}
+          {active ? "Working…" : "Wrap"}
         </button>
       </div>
     </section>

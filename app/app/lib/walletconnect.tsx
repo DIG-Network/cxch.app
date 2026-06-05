@@ -1,5 +1,21 @@
 "use client";
 
+// WalletConnect provider for the cXCH dApp — wired the same way as the
+// shielded-wallet reference (chia_shielded_transactions/apps/wallet):
+//
+//   * The chia namespace is declared under `optionalNamespaces`.
+//     WalletConnect 2.x deprecated `requiredNamespaces` (it silently
+//     forwards them with a console warning, but Sage's approval flow
+//     rejects sessions whose chia namespace arrived via the deprecated
+//     path with "missing chia namespace"). Sending under the current
+//     key is the canonical fix.
+//   * The pairing URI is exposed via context (`qrUri`) and rendered by
+//     `ConnectButton` inside a portal-based modal: spinner while the
+//     relay mints the URI, then the QR + copy-link controls.
+//   * Every method the dApp will ever request is listed up front — Sage
+//     grants only the methods present at pairing time and rejects
+//     anything else locally at request time.
+
 import {
   createContext,
   useCallback,
@@ -10,30 +26,38 @@ import {
 } from "react";
 import SignClient from "@walletconnect/sign-client";
 import type { SessionTypes } from "@walletconnect/types";
-import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "";
+const PROJECT_ID =
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ??
+  process.env.NEXT_PUBLIC_WC_PROJECT_ID ??
+  "";
 
 // cXCH is mainnet-only.
 export const CHAIN_ID = "chia:mainnet";
 
-// The CHIP-0002 / Sage method set this dApp relies on.
-const REQUIRED_METHODS = [
+// The CHIP-0002 / Sage method set this dApp relies on. Sage surfaces an
+// approval UI keyed off this list — anything not declared here is rejected
+// at request time even if the wallet supports it.
+const METHODS = [
+  "chia_getAddress",
   "chip0002_connect",
   "chip0002_chainId",
   "chip0002_getPublicKeys",
   "chip0002_getAssetCoins",
   "chip0002_getAssetBalance",
   "chip0002_signCoinSpends",
-  "chia_getAddress",
 ];
 
 interface WalletContext {
   client: SignClient | null;
   session: SessionTypes.Struct | null;
   connecting: boolean;
+  /** Pairing URI while a connect is pending — render as a QR code. */
+  qrUri: string | null;
   connect(): Promise<void>;
+  /** Abort a pending connect (close the QR modal). */
+  cancelConnect(): void;
   disconnect(): Promise<void>;
   request<T = unknown>(method: string, params: unknown): Promise<T>;
 }
@@ -49,64 +73,90 @@ export function useSage(): WalletContext {
 export function WalletConnectProvider({ children }: { children: ReactNode }) {
   const [client, setClient] = useState<SignClient | null>(null);
   const [session, setSession] = useState<SessionTypes.Struct | null>(null);
-  const [uri, setUri] = useState<string | null>(null);
+  const [qrUri, setQrUri] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     if (!PROJECT_ID) {
-      console.warn("NEXT_PUBLIC_WC_PROJECT_ID is not set; connect will fail.");
+      // Surfacing this loudly avoids the cryptic "400" the WalletConnect
+      // relay returns when handed an empty projectId. Get a free one from
+      // https://cloud.reown.com and put it in `app/.env.local` as
+      // `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=…`.
+      const msg =
+        "Missing NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID — create one at " +
+        "https://cloud.reown.com and add it to app/.env.local.";
+      console.error("[cXCH/WalletConnect]", msg);
+      toast.error(msg, { duration: 8000 });
+      return;
     }
     SignClient.init({
+      logger: "error",
       projectId: PROJECT_ID,
       metadata: {
         name: "cXCH",
         description: "Wrap and melt XCH as a 1:1 CAT2 token",
+        // Pin metadata.url to the page's actual origin — WalletConnect warns
+        // (and wallet verification can flag the dApp) if these differ.
         url: typeof window !== "undefined" ? window.location.origin : "",
-        icons: ["/icon.png"],
+        icons: ["https://avatars.githubusercontent.com/u/37784886"],
       },
     })
       .then((c) => {
         setClient(c);
+        // Restore the previous session if one survives in storage.
         const last = c.session.getAll().pop();
         if (last) setSession(last);
         c.on("session_delete", () => setSession(null));
         c.on("session_expire", () => setSession(null));
       })
       .catch((e) => {
-        console.error(e);
-        toast.error("Failed to initialize WalletConnect");
+        console.error("Failed to initialize WalletConnect:", e);
+        toast.error(`WalletConnect init failed: ${(e as Error)?.message ?? e}`);
       });
   }, []);
 
   const connect = useCallback(async () => {
-    if (!client) throw new Error("WalletConnect not ready");
+    if (!client) {
+      toast.error("WalletConnect not ready yet — try again in a second.");
+      return;
+    }
     setConnecting(true);
     try {
-      const { uri: u, approval } = await client.connect({
-        requiredNamespaces: {
-          chia: { methods: REQUIRED_METHODS, chains: [CHAIN_ID], events: [] },
+      const { uri, approval } = await client.connect({
+        optionalNamespaces: {
+          chia: { methods: METHODS, chains: [CHAIN_ID], events: [] },
         },
       });
-      if (u) setUri(u);
+      if (uri) setQrUri(uri);
       const s = await approval();
       setSession(s);
-      setUri(null);
       toast.success("Connected to Sage");
     } catch (e) {
-      console.error(e);
+      console.error("Connection failed:", e);
       toast.error("Connection rejected or failed");
     } finally {
+      setQrUri(null);
       setConnecting(false);
     }
   }, [client]);
 
+  const cancelConnect = useCallback(() => {
+    setQrUri(null);
+    setConnecting(false);
+  }, []);
+
   const disconnect = useCallback(async () => {
     if (!client || !session) return;
-    await client.disconnect({
-      topic: session.topic,
-      reason: { code: 6000, message: "User disconnected" },
-    });
+    try {
+      await client.disconnect({
+        topic: session.topic,
+        reason: { code: 6000, message: "User disconnected" },
+      });
+    } catch (e) {
+      console.error("Error disconnecting:", e);
+    }
     setSession(null);
+    toast.success("Disconnected");
   }, [client, session]);
 
   const request = useCallback(
@@ -122,31 +172,10 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <Ctx.Provider value={{ client, session, connecting, connect, disconnect, request }}>
+    <Ctx.Provider
+      value={{ client, session, connecting, qrUri, connect, cancelConnect, disconnect, request }}
+    >
       {children}
-      {uri && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70">
-          <div className="rounded-xl bg-white p-6 text-center text-black">
-            <QRCodeSVG value={uri} size={256} />
-            <p className="mt-3 text-sm font-medium">Scan with Sage Wallet</p>
-            <button
-              className="mt-2 rounded-md border px-3 py-1 text-sm"
-              onClick={() => {
-                navigator.clipboard.writeText(uri);
-                toast.success("URI copied");
-              }}
-            >
-              Copy URI
-            </button>
-            <button
-              className="ml-2 mt-2 rounded-md border px-3 py-1 text-sm"
-              onClick={() => setUri(null)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </Ctx.Provider>
   );
 }
