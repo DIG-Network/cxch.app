@@ -10,14 +10,16 @@
 // is resilient to those differences. If a specific wallet build still rejects a
 // request, the conversion helpers here are the single place to adjust.
 
-import { address_to_puzzle_hash, standard_puzzle_hash } from "./wasm";
-import { with0x } from "./format";
+import { address_to_puzzle_hash, cxch_outer_puzzle_hash, standard_puzzle_hash } from "./wasm";
+import { strip0x, with0x } from "./format";
 
 type RequestFn = <T = unknown>(method: string, params: unknown) => Promise<T>;
 
 /** Fetches the wallet's current receive address and returns its puzzle hash. */
 export async function getReceivePuzzleHash(request: RequestFn): Promise<string> {
-  const response = await request("chia_getCurrentAddress", {});
+  // Sage exposes `chia_getAddress` (there is no `chia_getCurrentAddress`);
+  // the method must also be in the namespace list granted at pairing time.
+  const response = await request("chia_getAddress", {});
   const address =
     typeof response === "string"
       ? response
@@ -33,20 +35,43 @@ export async function getPublicKeys(request: RequestFn): Promise<string[]> {
   return extractPublicKeys(response);
 }
 
-/** Fetches spendable coins for an asset (XCH when assetId is null). */
+/** Fetches ALL spendable coins for an asset (XCH when assetId is null),
+ * paging through Sage's 100-coin response window. */
 export async function getAssetCoins(
   request: RequestFn,
   type: "cat" | null,
   assetId: string | null
 ): Promise<unknown[]> {
-  const response = await request("chip0002_getAssetCoins", {
-    type,
-    assetId,
-    includedLocked: false,
-    offset: 0,
-    limit: 100,
-  });
-  return Array.isArray(response) ? response : [];
+  const PAGE = 100;
+  const all: unknown[] = [];
+  // Cap at 20 pages (2000 coins) as a runaway guard.
+  for (let offset = 0; offset < 20 * PAGE; offset += PAGE) {
+    const response = await request("chip0002_getAssetCoins", {
+      type,
+      // Sage hex params must NOT carry a 0x prefix.
+      assetId: assetId === null ? null : strip0x(assetId),
+      includedLocked: false,
+      offset,
+      limit: PAGE,
+    });
+    const page = Array.isArray(response) ? response : [];
+    all.push(...page);
+    if (page.length < PAGE) break;
+  }
+  return all;
+}
+
+/** Sums the amounts of asset coins returned by `getAssetCoins` (mojos). */
+export function sumCoinAmounts(coins: unknown[]): bigint {
+  let total = 0n;
+  for (const raw of coins) {
+    try {
+      total += BigInt(normalizeCoin(raw).amount);
+    } catch {
+      /* skip malformed entries */
+    }
+  }
+  return total;
 }
 
 export interface CoinJson {
@@ -93,6 +118,14 @@ export function normalizeCoin(raw: unknown): CoinJson {
   };
 }
 
+/** Extracts the coin id ("coin name") Sage attaches to each asset coin.
+ * Used to watch the spend on coinset.org after broadcast. */
+export function extractCoinName(raw: unknown): string | undefined {
+  const obj = raw as AnyRecord;
+  const name = pick(obj, "coinName", "coin_name", "name");
+  return typeof name === "string" && name.length > 0 ? with0x(name) : undefined;
+}
+
 /** Normalizes a CAT lineage proof from any wallet shape. */
 export function normalizeLineageProof(raw: unknown): LineageProofJson {
   const obj = (raw ?? {}) as AnyRecord;
@@ -127,6 +160,27 @@ export function buildKeyResolver(publicKeys: string[]): (puzzleHash: string) => 
     }
   }
   return (puzzleHash: string) => map.get(with0x(puzzleHash).toLowerCase());
+}
+
+/**
+ * Resolves the synthetic public key controlling a cXCH CAT coin.
+ *
+ * A CAT coin's on-chain puzzle hash is the OUTER (CAT2-wrapped) puzzle hash,
+ * not the inner standard puzzle hash, so the lookup maps
+ * `cxch_outer_puzzle_hash(standard_puzzle_hash(key))` → key.
+ */
+export function buildCatKeyResolver(publicKeys: string[]): (outerPuzzleHash: string) => string | undefined {
+  const map = new Map<string, string>();
+  for (const raw of publicKeys) {
+    const pk = with0x(raw);
+    try {
+      const inner = standard_puzzle_hash(pk);
+      map.set(with0x(cxch_outer_puzzle_hash(inner)).toLowerCase(), pk);
+    } catch {
+      /* skip entries that are not valid BLS public keys */
+    }
+  }
+  return (outerPuzzleHash: string) => map.get(with0x(outerPuzzleHash).toLowerCase());
 }
 
 /** Extracts the public keys array from a `chip0002_getPublicKeys` response. */

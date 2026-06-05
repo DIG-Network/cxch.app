@@ -3,10 +3,12 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
-import { build_melt_spends, cxch_asset_id } from "../lib/wasm";
-import { xchToMojos } from "../lib/format";
+import { build_melt_spends, cxch_asset_id, puzzle_hash_to_address } from "../lib/wasm";
+import { mojosToXch, xchToMojos } from "../lib/format";
 import {
+  buildCatKeyResolver,
   buildKeyResolver,
+  extractCoinName,
   getAssetCoins,
   getPublicKeys,
   getReceivePuzzleHash,
@@ -14,28 +16,44 @@ import {
   normalizeLineageProof,
   selectCoins,
 } from "../lib/sage";
-import { signAndBroadcast, type BuiltBundle } from "../lib/flow";
+import { type BuiltBundle } from "../lib/flow";
+import { useSpendConfirm, type PreparedSpend } from "./SpendConfirm";
 
 const DEFAULT_FEE = BigInt(process.env.NEXT_PUBLIC_DEFAULT_FEE_MOJOS ?? "100000000");
 
+/** 0.1% dev fee (10 basis points, floored) — must mirror cxch-core. */
+function devFee(amount: bigint): bigint {
+  return (amount * 10n) / 10_000n;
+}
+
 export function MeltPanel({ onDone }: { onDone: () => void }) {
   const { session, request } = useSage();
+  const { runSpend, active } = useSpendConfirm();
   const [amount, setAmount] = useState("");
-  const [busy, setBusy] = useState(false);
 
   async function melt() {
     if (!session) {
       toast.error("Connect Sage first");
       return;
     }
-    setBusy(true);
+    let meltMojos: bigint;
     try {
-      const meltMojos = xchToMojos(amount);
+      meltMojos = xchToMojos(amount);
       if (meltMojos <= 0n) throw new Error("Enter an amount greater than zero");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Enter a valid amount");
+      return;
+    }
 
-      const resolver = buildKeyResolver(await getPublicKeys(request));
+    const prepare = async (report: (s: string) => void): Promise<PreparedSpend> => {
+      report("Fetching wallet keys");
+      const publicKeys = await getPublicKeys(request);
+      const resolver = buildKeyResolver(publicKeys);
+      // CAT coins carry the OUTER (CAT2-wrapped) puzzle hash on-chain.
+      const catResolver = buildCatKeyResolver(publicKeys);
       const recipientPuzzleHash = await getReceivePuzzleHash(request);
 
+      report("Selecting cXCH coins");
       // Select cXCH (CAT) coins to burn.
       const rawCats = await getAssetCoins(request, "cat", cxch_asset_id());
       const cats = rawCats.map((raw) => {
@@ -44,14 +62,24 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
       });
       const selectedCats = selectCoins(cats, meltMojos);
 
-      // Select an XCH anchor coin to absorb the freed mojos and pay the fee.
-      // A CAT coin can only ever create CAT children, so the released XCH must be
-      // created by an ordinary coin spent in the same bundle.
-      const rawXch = (await getAssetCoins(request, null, null)).map(normalizeCoin);
-      const anchors = selectCoins(rawXch, DEFAULT_FEE > 0n ? DEFAULT_FEE : 1n);
+      report("Selecting an XCH anchor coin");
+      // A CAT coin can only ever create CAT children, so the released XCH must
+      // be created by an ordinary coin spent in the same bundle.
+      const rawXch = (await getAssetCoins(request, null, null)).map((raw) => ({
+        raw,
+        ...normalizeCoin(raw),
+      }));
+      // The fee and dev fee come out of (anchor + melt); anchors only need to
+      // keep that redeemable total above the deductions.
+      const deductions = DEFAULT_FEE + devFee(meltMojos);
+      const anchors = selectCoins(
+        rawXch,
+        deductions >= meltMojos ? deductions - meltMojos + 1n : 1n
+      );
 
+      report("Building spend bundle");
       const cxch_coins = selectedCats.map(({ raw, coin }) => {
-        const synthetic_key = resolver(coin.puzzle_hash);
+        const synthetic_key = catResolver(coin.puzzle_hash);
         if (!synthetic_key) throw new Error(`No known key for cXCH coin at ${coin.puzzle_hash}`);
         const rawObj = raw as Record<string, unknown>;
         const lineage_proof = normalizeLineageProof(
@@ -60,10 +88,10 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
         return { coin, lineage_proof, synthetic_key };
       });
 
-      const anchor_coins = anchors.map((coin) => {
-        const synthetic_key = resolver(coin.puzzle_hash);
-        if (!synthetic_key) throw new Error(`No known key for coin at ${coin.puzzle_hash}`);
-        return { coin, synthetic_key };
+      const anchor_coins = anchors.map(({ parent_coin_info, puzzle_hash, amount: amt }) => {
+        const synthetic_key = resolver(puzzle_hash);
+        if (!synthetic_key) throw new Error(`No known key for coin at ${puzzle_hash}`);
+        return { coin: { parent_coin_info, puzzle_hash, amount: amt }, synthetic_key };
       });
 
       const built = build_melt_spends({
@@ -75,15 +103,28 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
         fee_mojos: DEFAULT_FEE.toString(),
       }) as BuiltBundle;
 
-      const status = await signAndBroadcast(request, built);
-      toast.success(`Melted ${amount} cXCH → XCH (${status})`);
+      return {
+        built,
+        // Watch the first burned cXCH coin's SPEND on coinset — bundle landed.
+        watchCoinId: extractCoinName(selectedCats[0].raw),
+        summary: [
+          { label: "Action", value: "Melt cXCH → XCH" },
+          { label: "Burn", value: `${amount} cXCH`, strong: true },
+          { label: "XCH released", value: `${amount} XCH` },
+          { label: "Fee", value: `${mojosToXch(DEFAULT_FEE)} XCH` },
+          { label: "Dev fee (0.1%)", value: `${mojosToXch(devFee(meltMojos))} XCH` },
+          { label: "Recipient", value: puzzle_hash_to_address(recipientPuzzleHash) },
+        ],
+      };
+    };
+
+    try {
+      await runSpend({ title: `Melt ${amount} cXCH`, prepare });
+      toast.success(`Melted ${amount} cXCH → XCH`);
       setAmount("");
       onDone();
-    } catch (e) {
-      console.error(e);
-      toast.error(e instanceof Error ? e.message : "Melt failed");
-    } finally {
-      setBusy(false);
+    } catch {
+      /* the modal already surfaced the error / cancel */
     }
   }
 
@@ -103,10 +144,10 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
         />
         <button
           onClick={melt}
-          disabled={busy || !session}
+          disabled={active || !session}
           className="rounded-lg bg-[var(--accent)] px-5 py-2 font-semibold text-black disabled:opacity-60"
         >
-          {busy ? "Melting…" : "Melt"}
+          {active ? "Working…" : "Melt"}
         </button>
       </div>
     </section>
