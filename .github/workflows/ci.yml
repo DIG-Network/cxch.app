@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  rust-core:
+    name: wxch-core (test + wasm build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wxch-core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: wxch-core
+      - name: Run simulator round-trip tests
+        run: cargo test --release
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked || cargo install wasm-pack
+      - name: Build WASM package
+        run: wasm-pack build --release --target web --out-dir ../app/wasm-pkg
+
+  frontend:
+    name: app (next build)
+    runs-on: ubuntu-latest
+    needs: rust-core
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked || cargo install wasm-pack
+      - name: Build WASM package
+        run: npm run build:wasm
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_CHIA_CHAIN_ID: chia:testnet11

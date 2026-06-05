@@ -1,0 +1,56 @@
+[package]
+name = "wxch-core"
+version = "0.1.0"
+edition = "2021"
+description = "Spend-bundle builder for wXCH, a 1:1 wrapped-XCH CAT2 token on Chia"
+license = "MIT"
+repository = "https://github.com/michaeltaylor3d/wxch_dapp"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# Pinned to the resolved chia-wallet-sdk 0.27.x family. We depend on the
+# individual `chia-sdk-*` sub-crates rather than the umbrella `chia-wallet-sdk`
+# crate, because the umbrella crate pulls in `chia-sdk-client` (tokio + TLS),
+# which does not compile to `wasm32-unknown-unknown`. The sub-crates we use
+# here are pure CLVM / BLS logic and build cleanly for the browser.
+[dependencies]
+chia-sdk-driver = "0.27"
+chia-sdk-types = "0.27"
+chia-sdk-signer = "0.27"
+chia-sdk-utils = "0.27"
+chia-puzzle-types = "0.26"
+chia-puzzles = "0.20"
+chia-protocol = "0.26"
+chia-bls = "0.26"
+clvm-traits = "0.26"
+clvm-utils = "0.26"
+clvmr = "0.14"
+
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde-wasm-bindgen = "0.6"
+hex = "0.4"
+thiserror = "1"
+# `js` feature is required so getrandom links on the wasm32 target. It is a
+# no-op on native targets, so it is safe to enable unconditionally.
+getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+# The in-process simulator lives in chia-sdk-test and is only used by the
+# native round-trip tests (it is never compiled into the wasm bundle).
+chia-sdk-test = "0.27"
+anyhow = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
+# wasm-opt downloads a binaryen release the first time it runs; disable it so
+# the build does not depend on network access. Re-enable for size-optimized
+# production bundles once binaryen is available.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
