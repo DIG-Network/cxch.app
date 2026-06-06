@@ -12,7 +12,6 @@ import { MeltPanel } from "./components/MeltPanel";
 import { ProtocolTab } from "./components/ProtocolTab";
 import { Landing } from "./components/Landing";
 import { SpendConfirmProvider } from "./components/SpendConfirm";
-import RiskWarningModal from "./components/RiskWarningModal";
 
 type Tab = "app" | "protocol";
 
@@ -35,26 +34,11 @@ function TabNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   );
 }
 
-const RISK_ACK_KEY = "cxch-risk-ack";
-
 function Content() {
   const { session } = useSage();
   const [tab, setTab] = useState<Tab>("app");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [riskAccepted, setRiskAccepted] = useState(false);
   const bump = () => setRefreshKey((k) => k + 1);
-
-  // The blocking prerelease/risk disclaimer: shown once a wallet connects,
-  // until accepted. Session-scoped on purpose — it returns every browser
-  // session.
-  useEffect(() => {
-    setRiskAccepted(sessionStorage.getItem(RISK_ACK_KEY) === "1");
-  }, []);
-  const showRiskWarning = !!session && !riskAccepted;
-  const acceptRisk = () => {
-    sessionStorage.setItem(RISK_ACK_KEY, "1");
-    setRiskAccepted(true);
-  };
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-5 p-6">
@@ -112,8 +96,6 @@ function Content() {
       <footer className="mt-4 text-center text-xs text-gray-500">
         Backed 1:1 by Chia consensus. Permissionless mint &amp; melt.
       </footer>
-
-      <RiskWarningModal isOpen={showRiskWarning} onAccept={acceptRisk} />
     </main>
   );
 }

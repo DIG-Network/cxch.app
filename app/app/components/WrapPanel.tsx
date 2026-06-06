@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
 import { wrap as buildWrap, puzzle_hash_to_address } from "../lib/wasm";
@@ -13,6 +13,7 @@ import {
   getReceivePuzzleHash,
   normalizeCoin,
   selectCoins,
+  sumCoinAmounts,
 } from "../lib/sage";
 import { type BuiltBundle } from "../lib/flow";
 import { useSpendConfirm, type PreparedSpend } from "./SpendConfirm";
@@ -28,6 +29,45 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
   const { session, request } = useSage();
   const { runSpend, active } = useSpendConfirm();
   const [amount, setAmount] = useState("");
+  const [spendable, setSpendable] = useState<bigint | null>(null);
+
+  // Track the spendable XCH balance so "Max" can fill the largest wrappable
+  // amount. Re-polled every ~10s, mirroring the Balances card.
+  useEffect(() => {
+    if (!session) {
+      setSpendable(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const coins = await getAssetCoins(request, null, null);
+        if (!cancelled) setSpendable(sumCoinAmounts(coins));
+      } catch {
+        /* transient — keep the last known value */
+      }
+    };
+    load();
+    const id = setInterval(load, 10_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [session, request]);
+
+  // The largest amount that still leaves room for the network fee and the
+  // 0.1% dev fee the builder adds on top: maxMint + DEFAULT_FEE +
+  // floor(maxMint/1000) <= spendable.
+  function fillMax() {
+    if (spendable === null) return;
+    if (spendable <= DEFAULT_FEE) {
+      setAmount("0");
+      return;
+    }
+    let m = ((spendable - DEFAULT_FEE) * 1000n) / 1001n;
+    while (m > 0n && m + DEFAULT_FEE + devFee(m) > spendable) m -= 1n;
+    setAmount(m > 0n ? mojosToXch(m) : "0");
+  }
 
   async function wrap() {
     if (!session) {
@@ -103,13 +143,23 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
         Lock XCH and receive an equal amount of cXCH, backed 1:1 by consensus.
       </p>
       <div className="mt-4 flex gap-2">
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          inputMode="decimal"
-          placeholder="0.0"
-          className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2"
-        />
+        <div className="relative flex-1">
+          <input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            inputMode="decimal"
+            placeholder="0.0"
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 pr-16"
+          />
+          <button
+            type="button"
+            onClick={fillMax}
+            disabled={!session || spendable === null}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-[var(--border)] px-2 py-1 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-50"
+          >
+            Max
+          </button>
+        </div>
         <button
           onClick={wrap}
           disabled={active || !session}
@@ -118,6 +168,9 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
           {active ? "Working…" : "Wrap"}
         </button>
       </div>
+      <p className="mt-2 text-xs text-gray-500">
+        Spendable: {spendable === null ? "…" : `${mojosToXch(spendable)} XCH`}
+      </p>
     </section>
   );
 }

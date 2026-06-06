@@ -98,6 +98,38 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Trust callout — standard, audited puzzles only. */}
+      <section
+        className="flex items-start gap-4 rounded-xl border p-5"
+        style={{
+          borderColor: "rgba(63,185,80,0.35)",
+          background: "rgba(63,185,80,0.06)",
+        }}
+      >
+        <span
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg text-[var(--accent)]"
+          style={{ background: "rgba(63,185,80,0.12)" }}
+          aria-hidden
+        >
+          🛡️
+        </span>
+        <div>
+          <div className="font-semibold">
+            Built on standard, audited Chia puzzles — no custom on-chain code
+          </div>
+          <p className="mt-1 text-sm leading-relaxed text-gray-400">
+            cXCH is assembled entirely from the same battle-tested primitives
+            Chia and every CAT already rely on: the <strong>CAT2 layer</strong>,
+            the <strong>standard payment puzzle</strong>, and a published-key{" "}
+            <strong>TAIL</strong>. There is no bespoke contract to trust or to
+            audit. Wrapping and melting are enforced by{" "}
+            <strong>Chia consensus itself</strong> — exactly like any other CAT —
+            so the security of your funds rests on Chia&apos;s reviewed,
+            in-production puzzles, not on this app.
+          </p>
+        </div>
+      </section>
+
       {/* What it is — native vs CAT */}
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
