@@ -11,24 +11,25 @@
     "build:wasm": "cd ../cxch-core && wasm-pack build --release --target web --out-dir ../app/wasm-pkg"
   },
   "dependencies": {
-    "next": "15.2.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "@reduxjs/toolkit": "^2.6.1",
     "@walletconnect/sign-client": "^2.19.0",
     "@walletconnect/types": "^2.19.0",
-    "@reduxjs/toolkit": "^2.6.1",
-    "react-redux": "^9.2.0",
+    "next": "15.2.1",
     "qrcode.react": "^4.2.0",
-    "react-hot-toast": "^2.5.2"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.2",
+    "react-redux": "^9.2.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@resvg/resvg-js": "^2.6.2",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
-    "eslint-config-next": "15.2.1"
+    "eslint-config-next": "15.2.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
