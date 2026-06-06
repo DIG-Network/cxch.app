@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
 import { cmojo_asset_id } from "../lib/wasm";
-import { formatMojos, mojosToCat, mojosToXch } from "../lib/format";
+import { formatMojos, mojosToXch } from "../lib/format";
 import { getAssetCoins, sumCoinAmounts } from "../lib/sage";
 
 export function Balances({ refreshKey }: { refreshKey: number }) {
@@ -53,9 +53,11 @@ export function Balances({ refreshKey }: { refreshKey: number }) {
       </div>
       <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
         <div className="text-xs uppercase text-gray-400">cMojo</div>
-        {/* CAT count (3-decimal CAT convention) — the number Sage shows. */}
-        <div className="mt-1 text-2xl font-semibold">{cmojo === null ? "…" : mojosToCat(cmojo)}</div>
-        {/* The XCH backing it, in mojos (1 token = 1,000 mojos; 1:1 by mojo). */}
+        {/* Shown as its XCH value (1:1 by mojo), labelled XCH. */}
+        <div className="mt-1 text-2xl font-semibold">
+          {cmojo === null ? "…" : `${mojosToXch(cmojo)} XCH`}
+        </div>
+        {/* The same holding in raw mojos. */}
         <div className="mt-0.5 text-xs text-gray-500">
           {cmojo === null ? "" : `${formatMojos(cmojo)} mojos`}
         </div>
