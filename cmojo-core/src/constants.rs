@@ -12,7 +12,7 @@ pub const MAINNET_GENESIS_CHALLENGE: [u8; 32] =
 pub const TESTNET11_GENESIS_CHALLENGE: [u8; 32] =
     hex_lit(b"37a90eb5185a9c4439a91ddc98bbadce7b4feba060d50116a067de66bf236615");
 
-/// The cXCH issuer secret key. This key is published **on purpose**: the
+/// The cMojo issuer secret key. This key is published **on purpose**: the
 /// `everything_with_signature` TAIL only authorises the *supply change*, while
 /// Chia consensus independently enforces the 1:1 mojo backing. Publishing the
 /// key therefore makes minting and melting permissionless without weakening the
@@ -20,13 +20,13 @@ pub const TESTNET11_GENESIS_CHALLENGE: [u8; 32] =
 pub const ISSUER_SK_BYTES: [u8; 32] =
     hex_lit(b"0000000000000000000000000000000000000000000000000000000063786368");
 
-/// The cXCH issuer secret key.
+/// The cMojo issuer secret key.
 pub fn issuer_sk() -> SecretKey {
     SecretKey::from_bytes(&ISSUER_SK_BYTES).expect("issuer secret key is a valid BLS scalar")
 }
 
-/// The cXCH issuer public key. This is curried into the TAIL and therefore
-/// determines the single canonical cXCH asset id.
+/// The cMojo issuer public key. This is curried into the TAIL and therefore
+/// determines the single canonical cMojo asset id.
 pub fn issuer_pk() -> PublicKey {
     issuer_sk().public_key()
 }

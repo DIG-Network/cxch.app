@@ -1,14 +1,14 @@
 "use client";
 
-// Thin wrapper around the cxch-core WASM module. It guarantees the module is
+// Thin wrapper around the cmojo-core WASM module. It guarantees the module is
 // initialized exactly once before any of its functions are called.
 //
 // The default export `init` follows the wasm-pack `--target web` convention.
 // Calling it with no argument lets webpack's `asyncWebAssembly` machinery
 // resolve the `.wasm` blob automatically (see next.config.ts).
 import init, {
-  cxch_asset_id,
-  cxch_outer_puzzle_hash,
+  cmojo_asset_id,
+  cmojo_outer_puzzle_hash,
   standard_puzzle_hash,
   derive_synthetic_key,
   issuer_public_key,
@@ -23,7 +23,7 @@ let ready: Promise<void> | null = null;
 
 export function ensureWasm(): Promise<void> {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("cXCH engine requires a browser"));
+    return Promise.reject(new Error("cMojo engine requires a browser"));
   }
   if (!ready) {
     ready = init().then(() => undefined);
@@ -32,8 +32,8 @@ export function ensureWasm(): Promise<void> {
 }
 
 export {
-  cxch_asset_id,
-  cxch_outer_puzzle_hash,
+  cmojo_asset_id,
+  cmojo_outer_puzzle_hash,
   standard_puzzle_hash,
   derive_synthetic_key,
   issuer_public_key,

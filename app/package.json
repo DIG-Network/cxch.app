@@ -1,14 +1,14 @@
 {
-  "name": "cxch-dapp",
+  "name": "cmojo-dapp",
   "version": "0.1.0",
   "private": true,
-  "description": "cXCH — a 1:1 wrapped-XCH CAT2 dApp on Chia (Sage + WalletConnect v2)",
+  "description": "cMojo — a 1:1 wrapped-XCH CAT2 dApp on Chia (Sage + WalletConnect v2)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:wasm": "cd ../cxch-core && wasm-pack build --release --target web --out-dir ../app/wasm-pkg"
+    "build:wasm": "cd ../cmojo-core && wasm-pack build --release --target web --out-dir ../app/wasm-pkg"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.6.1",
@@ -22,7 +22,6 @@
     "react-redux": "^9.2.0"
   },
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

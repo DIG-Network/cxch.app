@@ -6,21 +6,21 @@ use chia_sdk_types::{announcement_id, Conditions};
 use crate::constants::{dev_fee, dev_fee_puzzle_hash, issuer_pk, Network};
 use crate::error::{Error, Result};
 use crate::spend::{StandardCoin, UnsignedSpendBundle};
-use crate::tail::{issuer_partial_signature, cxch_asset_id};
+use crate::tail::{issuer_partial_signature, cmojo_asset_id};
 
-const WRAP_ANNOUNCEMENT: &[u8] = b"cxch-wrap";
+const WRAP_ANNOUNCEMENT: &[u8] = b"cmojo-wrap";
 
 /// Parameters for a wrap (mint) operation: lock `mint_amount` mojos of XCH and
-/// receive the same number of mojos of cXCH.
+/// receive the same number of mojos of cMojo.
 pub struct WrapParams {
     /// The user's XCH coins to spend, each with its synthetic key. The first
     /// coin is the funder that creates the CAT eve coin.
     pub xch_coins: Vec<StandardCoin>,
-    /// The p2 puzzle hash that should receive the freshly minted cXCH.
+    /// The p2 puzzle hash that should receive the freshly minted cMojo.
     pub recipient_puzzle_hash: Bytes32,
     /// The p2 puzzle hash that should receive the XCH change.
     pub change_puzzle_hash: Bytes32,
-    /// The amount of cXCH to mint, in mojos.
+    /// The amount of cMojo to mint, in mojos.
     pub mint_amount: u64,
     /// The network fee, in mojos, paid from the XCH inputs.
     pub fee: u64,
@@ -30,7 +30,7 @@ pub struct WrapParams {
 /// Builds the unsigned spend bundle for a wrap.
 ///
 /// Net effect: `mint_amount` mojos leave the user's XCH wallet and an equal
-/// amount appears as cXCH at the CAT2 outer puzzle hash of `recipient_puzzle_hash`.
+/// amount appears as cMojo at the CAT2 outer puzzle hash of `recipient_puzzle_hash`.
 /// The 1:1 peg is enforced by consensus: the bundle is only valid if the XCH
 /// consumed equals `mint_amount + fee + change`.
 pub fn build_wrap(params: WrapParams) -> Result<UnsignedSpendBundle> {
@@ -58,9 +58,9 @@ pub fn build_wrap(params: WrapParams) -> Result<UnsignedSpendBundle> {
     let change = total_in - total_out;
 
     let mut ctx = SpendContext::new();
-    let _asset_id = cxch_asset_id();
+    let _asset_id = cmojo_asset_id();
 
-    // The eve coin's inner puzzle creates the actual cXCH output for the
+    // The eve coin's inner puzzle creates the actual cMojo output for the
     // recipient, hinted so wallets can index it.
     let recipient_hint = ctx.hint(params.recipient_puzzle_hash)?;
     let eve_conditions =

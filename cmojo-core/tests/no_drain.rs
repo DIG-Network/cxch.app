@@ -1,6 +1,6 @@
-//! Adversarial proof that the 1:1-mojo cXCH has NO drain vector.
+//! Adversarial proof that the 1:1-mojo cMojo has NO drain vector.
 //!
-//! The peg is CAT2 mojo-conservation: a cXCH coin of N mojos physically holds
+//! The peg is CAT2 mojo-conservation: a cMojo coin of N mojos physically holds
 //! N XCH mojos. There is no separate reserve to target. These tests attempt
 //! the analogues of the reserve-design drains and confirm consensus rejects
 //! them — minting without locking XCH, and melting out more than was burned.
@@ -12,11 +12,11 @@ use chia_sdk_test::Simulator;
 use chia_sdk_types::Conditions;
 use chia_puzzle_types::cat::EverythingWithSignatureTailArgs;
 use chia_puzzle_types::Memos;
-use cxch_core::constants::{issuer_sk, Network};
-use cxch_core::spend::{StandardCoin, CxchCoin};
-use cxch_core::tail::{cxch_asset_id, cxch_outer_puzzle_hash, partial_signature};
-use cxch_core::wrap::{build_wrap, WrapParams};
-use cxch_core::melt::{build_melt, MeltParams};
+use cmojo_core::constants::{issuer_sk, Network};
+use cmojo_core::spend::{StandardCoin, CmojoCoin};
+use cmojo_core::tail::{cmojo_asset_id, cmojo_outer_puzzle_hash, partial_signature};
+use cmojo_core::wrap::{build_wrap, WrapParams};
+use cmojo_core::melt::{build_melt, MeltParams};
 use clvmr::NodePtr;
 
 const XCH: u64 = 1_000_000_000_000;
@@ -31,8 +31,8 @@ fn push(sim: &mut Simulator, spends: Vec<CoinSpend>, sks: &[&chia_bls::SecretKey
     Ok(())
 }
 
-/// There is NO standing reserve coin: the backing lives inside each cXCH coin.
-/// After a wrap, the only coins holding the wrapped mojos are the cXCH CAT
+/// There is NO standing reserve coin: the backing lives inside each cMojo coin.
+/// After a wrap, the only coins holding the wrapped mojos are the cMojo CAT
 /// coins themselves — nothing at any "reserve" puzzle hash.
 #[test]
 fn backing_is_intrinsic_no_reserve_coin() -> anyhow::Result<()> {
@@ -47,25 +47,25 @@ fn backing_is_intrinsic_no_reserve_coin() -> anyhow::Result<()> {
         fee: 0,
         network: NET,
     })?;
-    let cxch = wrap.cat_outputs[0];
+    let cmojo = wrap.cat_outputs[0];
     push(&mut sim, wrap.coin_spends, &[&alice.sk, &issuer_sk()])?;
 
-    // The cXCH coin holds exactly `mint` mojos — the backing is IN the coin.
-    let cxch_coins = sim.unspent_coins(cxch_outer_puzzle_hash(alice.puzzle_hash), false);
-    assert_eq!(cxch_coins.iter().map(|c| c.amount).sum::<u64>(), mint);
-    assert_eq!(cxch.coin.amount, mint);
+    // The cMojo coin holds exactly `mint` mojos — the backing is IN the coin.
+    let cmojo_coins = sim.unspent_coins(cmojo_outer_puzzle_hash(alice.puzzle_hash), false);
+    assert_eq!(cmojo_coins.iter().map(|c| c.amount).sum::<u64>(), mint);
+    assert_eq!(cmojo.coin.amount, mint);
     Ok(())
 }
 
-/// Attempt to issue a cXCH coin of N mojos while the funder provides < N
+/// Attempt to issue a cMojo coin of N mojos while the funder provides < N
 /// mojos of backing. Consensus must reject (bundle mojo imbalance) — you
-/// cannot mint unbacked cXCH.
+/// cannot mint unbacked cMojo.
 #[test]
 fn cannot_mint_without_backing() -> anyhow::Result<()> {
     let mut sim = Simulator::new();
     let alice = sim.bls(XCH);
 
-    // Hand-craft: issue a 2*XCH cXCH eve from a 1*XCH funder, recreating the
+    // Hand-craft: issue a 2*XCH cMojo eve from a 1*XCH funder, recreating the
     // full XCH as change (so no backing is actually locked). This is the
     // "mint from nothing" attack.
     let mut ctx = SpendContext::new();
@@ -82,12 +82,12 @@ fn cannot_mint_without_backing() -> anyhow::Result<()> {
     let spends = ctx.take();
 
     let result = push(&mut sim, spends, &[&alice.sk, &issuer_sk()]);
-    assert!(result.is_err(), "minting cXCH without locking the backing must be rejected");
+    assert!(result.is_err(), "minting cMojo without locking the backing must be rejected");
     Ok(())
 }
 
-/// THE mint-binding proof: minting N cXCH consumes EXACTLY N XCH mojos.
-/// Fund with A mojos, mint all A (no fee, no change). The eve cXCH coin must
+/// THE mint-binding proof: minting N cMojo consumes EXACTLY N XCH mojos.
+/// Fund with A mojos, mint all A (no fee, no change). The eve cMojo coin must
 /// hold exactly A mojos and NO XCH may survive — every locked mojo went into
 /// the CAT coin. This is the 1:1 peg, enforced by CAT2 + mojo-conservation.
 #[test]
@@ -107,23 +107,23 @@ fn mint_locks_exactly_one_to_one() -> anyhow::Result<()> {
     })?;
     push(&mut sim, wrap.coin_spends, &[&alice.sk, &issuer_sk()])?;
 
-    // EXACTLY `mint` cXCH mojos were created.
-    let cxch: u64 = sim.unspent_coins(cxch_outer_puzzle_hash(alice.puzzle_hash), false)
+    // EXACTLY `mint` cMojo mojos were created.
+    let cmojo: u64 = sim.unspent_coins(cmojo_outer_puzzle_hash(alice.puzzle_hash), false)
         .iter().map(|c| c.amount).sum();
-    assert_eq!(cxch, mint, "cXCH minted == mojos locked (1:1)");
+    assert_eq!(cmojo, mint, "cMojo minted == mojos locked (1:1)");
 
-    // CONSERVATION: cXCH(mint) + dev fee + XCH change == funder input. No mojo
-    // was conjured; the minted cXCH is fully backed by consumed XCH.
-    let dev: u64 = sim.unspent_coins(cxch_core::constants::dev_fee_puzzle_hash(), false)
+    // CONSERVATION: cMojo(mint) + dev fee + XCH change == funder input. No mojo
+    // was conjured; the minted cMojo is fully backed by consumed XCH.
+    let dev: u64 = sim.unspent_coins(cmojo_core::constants::dev_fee_puzzle_hash(), false)
         .iter().map(|c| c.amount).sum();
     let change: u64 = sim.unspent_coins(alice.puzzle_hash, false)
         .iter().map(|c| c.amount).sum();
-    assert_eq!(cxch + dev + change, funded, "every mojo accounted; none minted for free");
-    assert_eq!(dev, cxch_core::constants::dev_fee(mint), "dev fee is 0.1% of mint");
+    assert_eq!(cmojo + dev + change, funded, "every mojo accounted; none minted for free");
+    assert_eq!(dev, cmojo_core::constants::dev_fee(mint), "dev fee is 0.1% of mint");
     Ok(())
 }
 
-/// Sharpest over-mint: issue an eve cXCH coin LARGER than the funder, with NO
+/// Sharpest over-mint: issue an eve cMojo coin LARGER than the funder, with NO
 /// change. Bundle output (eve) > input (funder) → consensus rejects. You
 /// cannot conjure CAT mojos; minting N strictly requires N mojos of input.
 #[test]
@@ -143,11 +143,11 @@ fn cannot_mint_more_than_funded() -> anyhow::Result<()> {
     let spends = ctx.take();
 
     let result = push(&mut sim, spends, &[&alice.sk, &issuer_sk()]);
-    assert!(result.is_err(), "issuing more cXCH mojos than the funder holds must be rejected");
+    assert!(result.is_err(), "issuing more cMojo mojos than the funder holds must be rejected");
     Ok(())
 }
 
-/// Attempt to melt M cXCH but pay out MORE XCH than (anchor + M − fees).
+/// Attempt to melt M cMojo but pay out MORE XCH than (anchor + M − fees).
 /// Consensus must reject (the anchor cannot create value it doesn't hold).
 #[test]
 fn cannot_overdraw_on_melt() -> anyhow::Result<()> {
@@ -160,11 +160,11 @@ fn cannot_overdraw_on_melt() -> anyhow::Result<()> {
         change_puzzle_hash: alice.puzzle_hash,
         mint_amount: mint, fee: 0, network: NET,
     })?;
-    let cxch = wrap.cat_outputs[0];
+    let cmojo = wrap.cat_outputs[0];
     push(&mut sim, wrap.coin_spends, &[&alice.sk, &issuer_sk()])?;
 
     let melt = XCH / 2;
-    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH - cxch_core::constants::dev_fee(mint));
+    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH - cmojo_core::constants::dev_fee(mint));
 
     // Hand-craft a melt that runs the TAIL with negative delta for `melt`,
     // but the anchor tries to create MORE than (anchor + melt) mojos.
@@ -175,7 +175,7 @@ fn cannot_overdraw_on_melt() -> anyhow::Result<()> {
         .run_cat_tail(tail, NodePtr::NIL)
         .create_coin(alice.puzzle_hash, mint - melt, hint);
     let cat_inner = StandardLayer::new(alice.pk).spend_with_conditions(&mut ctx, cat_conditions)?;
-    Cat::spend_all(&mut ctx, &[CatSpend::new(cxch, cat_inner)])?;
+    Cat::spend_all(&mut ctx, &[CatSpend::new(cmojo, cat_inner)])?;
     // Anchor over-creates: anchor.amount + melt + 1_000_000 (steal a million mojos).
     let steal = anchor.amount + melt + 1_000_000;
     StandardLayer::new(alice.pk).spend(&mut ctx, anchor,
@@ -187,7 +187,7 @@ fn cannot_overdraw_on_melt() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Melt ATOMICITY: a farmer cannot strip the cXCH burn from a melt bundle and
+/// Melt ATOMICITY: a farmer cannot strip the cMojo burn from a melt bundle and
 /// keep only the XCH payout. The CAT spend and the anchor are bound by a pair
 /// of coin announcements; removing the CAT spend leaves the anchor asserting a
 /// missing announcement (and over-creating value) → rejected.
@@ -202,34 +202,34 @@ fn melt_cannot_be_split_to_keep_payout() -> anyhow::Result<()> {
         change_puzzle_hash: alice.puzzle_hash,
         mint_amount: mint, fee: 0, network: NET,
     })?;
-    let cxch = wrap.cat_outputs[0];
+    let cmojo = wrap.cat_outputs[0];
     push(&mut sim, wrap.coin_spends, &[&alice.sk, &issuer_sk()])?;
 
     let melt = XCH / 2;
-    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH - cxch_core::constants::dev_fee(mint));
+    let anchor = Coin::new(alice.coin.coin_id(), alice.puzzle_hash, XCH - cmojo_core::constants::dev_fee(mint));
     let bundle = build_melt(MeltParams {
-        cxch_coins: vec![CxchCoin { cat: cxch, synthetic_key: alice.pk }],
+        cmojo_coins: vec![CmojoCoin { cat: cmojo, synthetic_key: alice.pk }],
         anchor_coins: vec![StandardCoin { coin: anchor, synthetic_key: alice.pk }],
         recipient_puzzle_hash: alice.puzzle_hash,
         cat_change_puzzle_hash: alice.puzzle_hash,
         melt_amount: melt, fee: 0, network: NET,
     })?;
 
-    // The full bundle is valid. Now STRIP the cXCH (CAT) spend, keeping only
+    // The full bundle is valid. Now STRIP the cMojo (CAT) spend, keeping only
     // the anchor that would pay out the freed mojos.
-    let cxch_outer = cxch_outer_puzzle_hash(alice.puzzle_hash);
+    let cmojo_outer = cmojo_outer_puzzle_hash(alice.puzzle_hash);
     let stripped: Vec<CoinSpend> = bundle.coin_spends.into_iter()
-        .filter(|cs| cs.coin.puzzle_hash != cxch_outer)
+        .filter(|cs| cs.coin.puzzle_hash != cmojo_outer)
         .collect();
     assert!(!stripped.is_empty(), "anchor spend should remain");
 
     let result = push(&mut sim, stripped, &[&alice.sk]);
-    assert!(result.is_err(), "stripping the cXCH burn from a melt must invalidate the payout");
+    assert!(result.is_err(), "stripping the cMojo burn from a melt must invalidate the payout");
     Ok(())
 }
 
 /// CATbleed analogue (the CAT1 counterfeiting bug, fixed in CAT2): take a held
-/// cXCH coin of N and try to spend it creating MORE than N cXCH mojos of
+/// cMojo coin of N and try to spend it creating MORE than N cMojo mojos of
 /// children WITHOUT running the TAIL (no issuer authorization). CAT2 requires
 /// the ring to balance (delta==0) when no TAIL runs, so the inflation is
 /// rejected. We use CAT2 (EverythingWithSignature TAIL + Cat driver), so the
@@ -245,34 +245,34 @@ fn catbleed_counterfeit_rejected() -> anyhow::Result<()> {
         change_puzzle_hash: alice.puzzle_hash,
         mint_amount: mint, fee: 0, network: NET,
     })?;
-    let cxch = wrap.cat_outputs[0];
+    let cmojo = wrap.cat_outputs[0];
     push(&mut sim, wrap.coin_spends, &[&alice.sk, &issuer_sk()])?;
 
-    // Spend the held cXCH coin, inner creates a child of N + 1_000_000_000
+    // Spend the held cMojo coin, inner creates a child of N + 1_000_000_000
     // mojos — counterfeit inflation — and does NOT run the TAIL.
     let mut ctx = SpendContext::new();
     let hint = ctx.hint(alice.puzzle_hash)?;
-    let counterfeit = cxch.coin.amount + 1_000_000_000;
+    let counterfeit = cmojo.coin.amount + 1_000_000_000;
     let cat_conditions = Conditions::new().create_coin(alice.puzzle_hash, counterfeit, hint);
     let cat_inner = StandardLayer::new(alice.pk).spend_with_conditions(&mut ctx, cat_conditions)?;
     // Cat::spend_all computes the ring delta; without a TAIL authorizing the
     // positive delta, this must be impossible to push.
     let result = (|| -> anyhow::Result<()> {
-        Cat::spend_all(&mut ctx, &[CatSpend::new(cxch, cat_inner)])?;
+        Cat::spend_all(&mut ctx, &[CatSpend::new(cmojo, cat_inner)])?;
         let spends = ctx.take();
         push(&mut sim, spends, &[&alice.sk, &issuer_sk()])?;
         Ok(())
     })();
-    assert!(result.is_err(), "CAT2 must reject counterfeiting cXCH without a TAIL-authorized delta");
+    assert!(result.is_err(), "CAT2 must reject counterfeiting cMojo without a TAIL-authorized delta");
     Ok(())
 }
 
 /// Sanity: the asset id is fixed by the published issuer key (no launcher,
-/// no mutable state), so every cXCH is the same fungible asset.
+/// no mutable state), so every cMojo is the same fungible asset.
 #[test]
 fn asset_id_is_deterministic() {
-    let a = cxch_asset_id();
-    let b = cxch_asset_id();
+    let a = cmojo_asset_id();
+    let b = cmojo_asset_id();
     assert_eq!(a, b);
     let _ = CatInfo::new(a, None, Default::default());
 }

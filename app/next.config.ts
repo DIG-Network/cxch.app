@@ -9,7 +9,7 @@ import type { NextConfig } from "next";
 // WHY STATIC EXPORT:
 //   * WalletConnect's `SignClient` opens an IndexedDB store at construction
 //     time; IndexedDB doesn't exist in Node, so any SSR pass would crash.
-//   * The cxch-core wasm bundle is browser-only by nature.
+//   * The cmojo-core wasm bundle is browser-only by nature.
 //   * Sage Wallet integration is inherently client-side.
 const nextConfig: NextConfig = {
   output: "export",

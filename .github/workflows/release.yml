@@ -1,6 +1,6 @@
 name: Release WASM to npm
 
-# Builds the cxch-core Rust → WASM package and publishes it to npm whenever a
+# Builds the cmojo-core Rust → WASM package and publishes it to npm whenever a
 # version tag is pushed (e.g. `v0.2.0`). The published package version is taken
 # from the tag, and the package is scoped to the DIG-Network org.
 #
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   publish-wasm:
-    name: build + publish @dig-network/cxch-core
+    name: build + publish @dig-network/cmojo-core
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: cxch-core
+          workspaces: cmojo-core
 
       # blst (a chia-bls dependency) needs clang to compile its C to wasm.
       - name: Install clang
@@ -42,11 +42,11 @@ jobs:
         run: cargo install wasm-pack --locked || cargo install wasm-pack
 
       - name: Run simulator tests (gate the release)
-        working-directory: cxch-core
+        working-directory: cmojo-core
         run: cargo test --release
 
       - name: Build WASM package
-        working-directory: cxch-core
+        working-directory: cmojo-core
         run: wasm-pack build --release --target web --out-dir ../app/wasm-pkg
 
       - uses: actions/setup-node@v4
@@ -62,7 +62,7 @@ jobs:
           node -e '
             const fs = require("fs");
             const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            p.name = "@dig-network/cxch-core";
+            p.name = "@dig-network/cmojo-core";
             p.version = process.env.VERSION;
             p.repository = { type: "git", url: "git+https://github.com/DIG-Network/cXCH_DAPP.git" };
             p.publishConfig = { access: "public" };
@@ -79,7 +79,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-crate:
-    name: build + publish cxch-core to crates.io
+    name: build + publish cmojo-core to crates.io
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -92,20 +92,20 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: cxch-core
+          workspaces: cmojo-core
 
       - name: Install clang (blst needs it)
         run: sudo apt-get update && sudo apt-get install -y clang
 
       # crates.io requires Cargo.toml's version to match the release; stamp it.
       - name: Stamp crate version from tag
-        working-directory: cxch-core
+        working-directory: cmojo-core
         run: |
           sed -i -E "0,/^version = \".*\"/s//version = \"${{ steps.ver.outputs.version }}\"/" Cargo.toml
           grep -m1 '^version' Cargo.toml
 
       - name: Publish to crates.io
-        working-directory: cxch-core
+        working-directory: cmojo-core
         run: cargo publish --allow-dirty --token "$CARGO_REGISTRY_TOKEN"
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

@@ -1,7 +1,7 @@
 "use client";
 
 // Helpers that adapt Sage / CHIP-0002 WalletConnect responses into the shapes
-// the cxch-core WASM module expects, and back into the shapes Sage and
+// the cmojo-core WASM module expects, and back into the shapes Sage and
 // coinset.org expect for signing and broadcasting.
 //
 // NOTE ON WIRE FORMATS: different Chia wallets have historically used slightly
@@ -10,7 +10,7 @@
 // is resilient to those differences. If a specific wallet build still rejects a
 // request, the conversion helpers here are the single place to adjust.
 
-import { address_to_puzzle_hash, cxch_outer_puzzle_hash, standard_puzzle_hash } from "./wasm";
+import { address_to_puzzle_hash, cmojo_outer_puzzle_hash, standard_puzzle_hash } from "./wasm";
 import { strip0x, with0x } from "./format";
 
 type RequestFn = <T = unknown>(method: string, params: unknown) => Promise<T>;
@@ -181,11 +181,11 @@ export function buildKeyResolver(publicKeys: string[]): (puzzleHash: string) => 
 }
 
 /**
- * Resolves the synthetic public key controlling a cXCH CAT coin.
+ * Resolves the synthetic public key controlling a cMojo CAT coin.
  *
  * A CAT coin's on-chain puzzle hash is the OUTER (CAT2-wrapped) puzzle hash,
  * not the inner standard puzzle hash, so the lookup maps
- * `cxch_outer_puzzle_hash(standard_puzzle_hash(key))` → key.
+ * `cmojo_outer_puzzle_hash(standard_puzzle_hash(key))` → key.
  */
 export function buildCatKeyResolver(publicKeys: string[]): (outerPuzzleHash: string) => string | undefined {
   const map = new Map<string, string>();
@@ -193,7 +193,7 @@ export function buildCatKeyResolver(publicKeys: string[]): (outerPuzzleHash: str
     const pk = with0x(raw);
     try {
       const inner = standard_puzzle_hash(pk);
-      map.set(with0x(cxch_outer_puzzle_hash(inner)).toLowerCase(), pk);
+      map.set(with0x(cmojo_outer_puzzle_hash(inner)).toLowerCase(), pk);
     } catch {
       /* skip entries that are not valid BLS public keys */
     }

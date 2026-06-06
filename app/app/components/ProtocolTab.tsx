@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { cxch_asset_id, issuer_public_key } from "../lib/wasm";
+import { cmojo_asset_id, issuer_public_key } from "../lib/wasm";
 
-// The Protocol tab — the integration spec for the canonical cXCH asset id.
+// The Protocol tab — the integration spec for the canonical cMojo asset id.
 // It tells any app exactly which asset id to use and how to construct spend
-// bundles that mint (wrap) and melt (burn) cXCH. It deliberately does NOT
-// discuss deploying a new CAT: there is exactly one cXCH.
+// bundles that mint (wrap) and melt (burn) cMojo. It deliberately does NOT
+// discuss deploying a new CAT: there is exactly one cMojo.
 
-/** The intentionally published issuer secret key (see cxch-core/constants.rs).
+/** The intentionally published issuer secret key (see cmojo-core/constants.rs).
  * Publishing it is what makes mint and melt permissionless: the
  * `everything_with_signature` TAIL only authorises the *supply change*, while
  * Chia consensus independently enforces the 1:1 mojo backing. */
@@ -78,15 +78,15 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 }
 
 export function ProtocolTab() {
-  const assetId = cxch_asset_id();
+  const assetId = cmojo_asset_id();
   const issuerPk = issuer_public_key();
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm leading-relaxed text-gray-400">
         Everything an application needs to mint or melt <strong>this exact asset id</strong>.
-        There is one canonical cXCH — these parameters are fixed forever and identical for
-        every integrator. cXCH is a standard{" "}
+        There is one canonical cMojo — these parameters are fixed forever and identical for
+        every integrator. cMojo is a standard{" "}
         <span className="font-mono">CAT2</span> token on Chia mainnet; any wallet or dApp
         that understands CATs can hold and transfer it with no extra work. Minting and
         melting are permissionless: no registration, no allowlist, no counterparty.
@@ -95,14 +95,14 @@ export function ProtocolTab() {
       <Section title="Canonical parameters">
         <div className="flex flex-col gap-3">
           <CopyableValue
-            label="cXCH asset id (TAIL hash)"
+            label="cMojo asset id (TAIL hash)"
             value={assetId}
             note="Use this as the CAT2 asset id everywhere: balance queries, coin lookups, transfers, and the outer-puzzle hash computation. Wallet RPCs (e.g. Sage's chip0002_*) expect it WITHOUT the 0x prefix."
           />
           <CopyableValue
             label="Issuer public key (curried into the TAIL)"
             value={issuerPk}
-            note="The TAIL is the canonical `everything_with_signature` multi-issuance puzzle from chia-puzzles, curried with this BLS public key. TAIL hash = cXCH asset id."
+            note="The TAIL is the canonical `everything_with_signature` multi-issuance puzzle from chia-puzzles, curried with this BLS public key. TAIL hash = cMojo asset id."
           />
           <CopyableValue
             label="Issuer secret key — published on purpose"
@@ -117,12 +117,12 @@ export function ProtocolTab() {
         </div>
       </Section>
 
-      <Section title="Mint (wrap): XCH → cXCH">
+      <Section title="Mint (wrap): XCH → cMojo">
         <p className="mb-3 text-sm leading-relaxed text-gray-400">
-          A mint is a single spend bundle that locks XCH and issues the same number of cXCH
+          A mint is a single spend bundle that locks XCH and issues the same number of cMojo
           mojos. Consensus only accepts the bundle if{" "}
           <span className="font-mono">XCH in = mint + fee + change</span>, so newly minted
-          cXCH is always matched 1:1 by consumed XCH.
+          cMojo is always matched 1:1 by consumed XCH.
         </p>
         <ol className="flex flex-col gap-3">
           <Step n={1} title="Spend XCH funder coins">
@@ -133,7 +133,7 @@ export function ProtocolTab() {
           <Step n={2} title="Run the TAIL with a positive delta">
             The eve coin&apos;s spend reveals the `everything_with_signature` TAIL (curried
             with the issuer public key above) and runs it with a positive supply delta equal
-            to the mint amount. Its inner puzzle pays the freshly minted cXCH to the
+            to the mint amount. Its inner puzzle pays the freshly minted cMojo to the
             recipient&apos;s puzzle hash.
           </Step>
           <Step n={3} title="Sign with the issuer key">
@@ -149,15 +149,15 @@ export function ProtocolTab() {
         </ol>
       </Section>
 
-      <Section title="Melt (burn): cXCH → XCH">
+      <Section title="Melt (burn): cMojo → XCH">
         <p className="mb-3 text-sm leading-relaxed text-gray-400">
-          A melt runs the TAIL with a <em>negative</em> delta, retiring cXCH mojos. Because
+          A melt runs the TAIL with a <em>negative</em> delta, retiring cMojo mojos. Because
           a CAT coin can only create CAT children, the freed mojos are claimed by an
           ordinary XCH <em>anchor</em> coin spent in the same bundle.
         </p>
         <ol className="flex flex-col gap-3">
-          <Step n={1} title="Spend the cXCH coins">
-            Spend the cXCH coins to melt. The first coin reveals the TAIL and runs it with a
+          <Step n={1} title="Spend the cMojo coins">
+            Spend the cMojo coins to melt. The first coin reveals the TAIL and runs it with a
             negative <span className="font-mono">extra_delta</span> equal to the melt
             amount; the CAT ring accounting must net out to (total − melt).
           </Step>
@@ -169,14 +169,14 @@ export function ProtocolTab() {
           <Step n={3} title="Bind the two spends with announcements">
             So a farmer cannot split the bundle, bind them bidirectionally with coin
             announcements: the CAT spend creates announcement{" "}
-            <span className="font-mono">&quot;cxch-melt&quot;</span> and asserts the
-            anchor&apos;s <span className="font-mono">&quot;cxch-anchor&quot;</span>; the
-            anchor creates <span className="font-mono">&quot;cxch-anchor&quot;</span> and
-            asserts the CAT&apos;s <span className="font-mono">&quot;cxch-melt&quot;</span>.
+            <span className="font-mono">&quot;cmojo-melt&quot;</span> and asserts the
+            anchor&apos;s <span className="font-mono">&quot;cmojo-anchor&quot;</span>; the
+            anchor creates <span className="font-mono">&quot;cmojo-anchor&quot;</span> and
+            asserts the CAT&apos;s <span className="font-mono">&quot;cmojo-melt&quot;</span>.
           </Step>
           <Step n={4} title="Sign, aggregate, broadcast">
             As with mint: issuer signature over the (negative) supply change, aggregated
-            with the wallet&apos;s signatures for the cXCH inner puzzles and the anchor
+            with the wallet&apos;s signatures for the cMojo inner puzzles and the anchor
             coin, then push the bundle.
           </Step>
         </ol>
@@ -197,17 +197,17 @@ export function ProtocolTab() {
               TypeScript / WASM
             </span>
             <a
-              href="https://www.npmjs.com/package/@dig-network/cxch-core"
+              href="https://www.npmjs.com/package/@dig-network/cmojo-core"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-gray-500 underline-offset-2 hover:text-[var(--accent)] hover:underline"
             >
-              @dig-network/cxch-core ↗
+              @dig-network/cmojo-core ↗
             </a>
           </div>
-          <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--background)] p-3 font-mono text-xs leading-relaxed">{`npm install @dig-network/cxch-core
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--background)] p-3 font-mono text-xs leading-relaxed">{`npm install @dig-network/cmojo-core
 
-import init, { wrap, melt } from "@dig-network/cxch-core";
+import init, { wrap, melt } from "@dig-network/cmojo-core";
 await init();
 const bundle = wrap({ xch_coins, recipient_puzzle_hash,
   change_puzzle_hash, mint_amount_mojos, fee_mojos });
@@ -218,17 +218,17 @@ const bundle = wrap({ xch_coins, recipient_puzzle_hash,
           <div className="flex items-center justify-between">
             <span className="text-xs uppercase tracking-wide text-gray-400">Rust</span>
             <a
-              href="https://crates.io/crates/cxch-core"
+              href="https://crates.io/crates/cmojo-core"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-gray-500 underline-offset-2 hover:text-[var(--accent)] hover:underline"
             >
-              crates.io/crates/cxch-core ↗
+              crates.io/crates/cmojo-core ↗
             </a>
           </div>
-          <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--background)] p-3 font-mono text-xs leading-relaxed">{`cargo add cxch-core
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--background)] p-3 font-mono text-xs leading-relaxed">{`cargo add cmojo-core
 
-use cxch_core::{wrap, melt, WrapParams};
+use cmojo_core::{wrap, melt, WrapParams};
 let bundle = wrap(WrapParams { /* coins, recipient, mint_amount, … */ })?;
 // melt(MeltParams { … })? is symmetric. Dev fee is baked in.`}</pre>
         </div>

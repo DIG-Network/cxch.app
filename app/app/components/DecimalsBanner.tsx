@@ -1,14 +1,14 @@
 "use client";
 
 // DecimalsBanner — explains the decimal-convention gap between native XCH (12
-// decimals) and cXCH (a CAT2, which follows the 3-decimal CAT standard), while
-// stressing that a cXCH coin holds the EXACT same mojos as the XCH inside it.
-// Pre-empts the "why does Sage show a huge cXCH number?" confusion: this app
-// shows cXCH in XCH terms, a CAT wallet shows the same coin ~1e9x larger.
+// decimals) and cMojo (a CAT2, which follows the 3-decimal CAT standard), while
+// stressing that a cMojo coin holds the EXACT same mojos as the XCH inside it.
+// Pre-empts the "why does Sage show a huge cMojo number?" confusion: this app
+// shows cMojo in XCH terms, a CAT wallet shows the same coin ~1e9x larger.
 // Dismissible; the choice is remembered per browser.
 import { useEffect, useState } from "react";
 
-const KEY = "cxch-decimals-note-dismissed";
+const KEY = "cmojo-decimals-note-dismissed";
 
 export function DecimalsBanner() {
   const [hidden, setHidden] = useState(true);
@@ -43,11 +43,11 @@ export function DecimalsBanner() {
         <div className="font-semibold">Same mojos, different decimals</div>
         <p className="mt-1 leading-relaxed text-gray-400">
           Native XCH uses <strong>12 decimals</strong> (1 XCH = 1,000,000,000,000
-          mojos); cXCH, as a <strong>CAT2</strong> token, uses the CAT standard of{" "}
-          <strong>3 decimals</strong>. A cXCH coin always holds the{" "}
+          mojos); cMojo, as a <strong>CAT2</strong> token, uses the CAT standard of{" "}
+          <strong>3 decimals</strong>. A cMojo coin always holds the{" "}
           <strong>exact same number of mojos</strong> as the XCH inside it — the
-          peg is 1 mojo to 1 mojo, never a multiple. This app shows cXCH in XCH
-          terms, so 1 XCH wrapped reads as 1 cXCH here; a CAT wallet like{" "}
+          peg is 1 mojo to 1 mojo, never a multiple. This app shows cMojo in XCH
+          terms, so 1 XCH wrapped reads as 1 cMojo here; a CAT wallet like{" "}
           <strong>Sage</strong> shows that same coin with 3 decimals — a much
           larger number (≈ ×1,000,000,000). Identical value, different decimal
           scale.

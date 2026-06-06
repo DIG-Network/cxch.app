@@ -1,6 +1,6 @@
 "use client";
 
-// WalletConnect provider for the cXCH dApp — wired the same way as the
+// WalletConnect provider for the cMojo dApp — wired the same way as the
 // shielded-wallet reference (chia_shielded_transactions/apps/wallet):
 //
 //   * The chia namespace is declared under `optionalNamespaces`.
@@ -34,7 +34,7 @@ const PROJECT_ID =
   process.env.NEXT_PUBLIC_WC_PROJECT_ID ??
   "";
 
-// cXCH is mainnet-only.
+// cMojo is mainnet-only.
 export const CHAIN_ID = "chia:mainnet";
 
 // The CHIP-0002 / Sage method set this dApp relies on. Sage surfaces an
@@ -89,7 +89,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       const msg =
         "Missing NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID — create one at " +
         "https://cloud.reown.com and add it to app/.env.local.";
-      console.error("[cXCH/WalletConnect]", msg);
+      console.error("[cMojo/WalletConnect]", msg);
       toast.error(msg, { duration: 8000 });
       return;
     }
@@ -97,15 +97,15 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
       logger: "error",
       projectId: PROJECT_ID,
       metadata: {
-        name: "cXCH",
+        name: "cMojo",
         description: "Wrap and melt XCH as a 1:1 CAT2 token",
         // Pin metadata.url to the page's actual origin — WalletConnect warns
         // (and wallet verification can flag the dApp) if these differ.
         url: typeof window !== "undefined" ? window.location.origin : "",
         icons: [
           typeof window !== "undefined"
-            ? `${window.location.origin}/icon.svg`
-            : "/icon.svg",
+            ? `${window.location.origin}/favicon-512.png`
+            : "/favicon-512.png",
         ],
       },
     })

@@ -7,11 +7,11 @@ on:
 
 jobs:
   rust-core:
-    name: cxch-core (test + wasm build)
+    name: cmojo-core (test + wasm build)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: cxch-core
+        working-directory: cmojo-core
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -19,7 +19,7 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: cxch-core
+          workspaces: cmojo-core
       - name: Install clang (blst needs it for the wasm build)
         run: sudo apt-get update && sudo apt-get install -y clang
       - name: Run simulator round-trip tests

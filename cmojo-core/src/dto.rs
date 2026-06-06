@@ -5,8 +5,8 @@ use chia_sdk_driver::{Cat, CatInfo};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::spend::{StandardCoin, UnsignedSpendBundle, CxchCoin};
-use crate::tail::{standard_puzzle_hash, cxch_asset_id};
+use crate::spend::{StandardCoin, UnsignedSpendBundle, CmojoCoin};
+use crate::tail::{standard_puzzle_hash, cmojo_asset_id};
 
 // ---------------------------------------------------------------------------
 // Input DTOs
@@ -35,7 +35,7 @@ pub struct StandardCoinDto {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct CxchCoinDto {
+pub struct CmojoCoinDto {
     pub coin: CoinDto,
     pub lineage_proof: LineageProofDto,
     pub synthetic_key: String,
@@ -54,7 +54,7 @@ pub struct WrapRequestDto {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct MeltRequestDto {
-    pub cxch_coins: Vec<CxchCoinDto>,
+    pub cmojo_coins: Vec<CmojoCoinDto>,
     pub anchor_coins: Vec<StandardCoinDto>,
     pub recipient_puzzle_hash: String,
     pub cat_change_puzzle_hash: String,
@@ -121,17 +121,17 @@ impl LineageProofDto {
     }
 }
 
-impl CxchCoinDto {
-    pub fn to_cxch_coin(&self) -> Result<CxchCoin> {
+impl CmojoCoinDto {
+    pub fn to_cmojo_coin(&self) -> Result<CmojoCoin> {
         let synthetic_key = parse_pk(&self.synthetic_key)?;
         let p2_puzzle_hash = standard_puzzle_hash(synthetic_key);
-        let info = CatInfo::new(cxch_asset_id(), None, p2_puzzle_hash);
+        let info = CatInfo::new(cmojo_asset_id(), None, p2_puzzle_hash);
         let cat = Cat::new(
             self.coin.to_coin()?,
             Some(self.lineage_proof.to_lineage_proof()?),
             info,
         );
-        Ok(CxchCoin {
+        Ok(CmojoCoin {
             cat,
             synthetic_key,
         })

@@ -1,27 +1,27 @@
-# cXCH — a 1:1 Wrapped-XCH CAT2 dApp on Chia
+# cMojo — a 1:1 Wrapped-XCH CAT2 dApp on Chia
 
-cXCH is native XCH expressed as a **CAT2** (Chia Asset Token, version 2). Each
-cXCH mojo is backed **1:1** by a real XCH mojo — not held in a treasury, bridge,
-or custodial reserve, but carried **inside the token itself**. A cXCH coin of
-`N` mojos literally holds `N` mojos of XCH. Own the cXCH and you own the XCH;
+cMojo is native XCH expressed as a **CAT2** (Chia Asset Token, version 2). Each
+cMojo mojo is backed **1:1** by a real XCH mojo — not held in a treasury, bridge,
+or custodial reserve, but carried **inside the token itself**. A cMojo coin of
+`N` mojos literally holds `N` mojos of XCH. Own the cMojo and you own the XCH;
 melt it and that exact XCH re-emerges as native coin in the same block.
 
 The peg is enforced by **Chia consensus itself**:
 
 - **Wrap (mint):** spend XCH and run the issuance TAIL with a positive delta in
   the same spend bundle. Consensus only accepts the bundle if the XCH consumed
-  equals `mint + fee + change`, so newly minted cXCH is always matched by an
+  equals `mint + fee + change`, so newly minted cMojo is always matched by an
   equal amount of XCH locked into the coin.
-- **Melt (burn):** spend cXCH and run the TAIL with a negative delta. The mojos
+- **Melt (burn):** spend cMojo and run the TAIL with a negative delta. The mojos
   embedded in the coin re-emerge as ordinary XCH in the same block.
 
 There is **no reserve, vault, or bridge** anyone could drain, freeze, or rug —
 the backing is an intrinsic property of every coin, and melting is always
-available to anyone holding cXCH.
+available to anyone holding cMojo.
 
 ## Built only on standard, audited Chia puzzles
 
-cXCH ships **no bespoke on-chain code.** It is assembled entirely from the same
+cMojo ships **no bespoke on-chain code.** It is assembled entirely from the same
 battle-tested, in-production primitives that Chia and every CAT already rely on:
 
 | Layer | Puzzle |
@@ -50,8 +50,8 @@ Sage's own CHIP-0002 command definitions in
 [`xch-dev/sage`](https://github.com/xch-dev/sage).
 
 ```
-cXCH/
-├── cxch-core/        # Rust → WASM spend-bundle builder (wrap + melt)
+cMojo/
+├── cmojo-core/        # Rust → WASM spend-bundle builder (wrap + melt)
 │   ├── src/          # lib.rs (public surface), wrap.rs, melt.rs, tail.rs, …
 │   ├── tests/        # round_trip.rs (sim round trips) + no_drain.rs (adversarial)
 │   └── examples/     # identity.rs prints the canonical asset id
@@ -67,11 +67,11 @@ cXCH/
 
 | Value | |
 |---|---|
-| cXCH asset id (TAIL hash) | `0x8808ca01803e09bf6d067075c9373b227aa8b086504ff0ac63cb3f02fe21c9ba` |
+| cMojo asset id (TAIL hash) | `0x8808ca01803e09bf6d067075c9373b227aa8b086504ff0ac63cb3f02fe21c9ba` |
 | TAIL | `everything_with_signature` (multi-issuance), from `chia-puzzles` |
 | Issuer public key | `0xa4190e0dbbe68920ce6fb1b22c1da7c70561aad975a93544b5af91995329a4f75cbd8096b2f1baa07a2c339b74bd45ab` |
 
-Recompute these any time with `cargo run --example identity` inside `cxch-core`.
+Recompute these any time with `cargo run --example identity` inside `cmojo-core`.
 
 ## Use it in your own dApp
 
@@ -80,14 +80,14 @@ same two-function interface — **`wrap`** and **`melt`** — and the **0.1% dev
 baked in by default** (it is computed inside the library, never a caller
 parameter, so it is always included behind both surfaces).
 
-### npm (TypeScript / WASM) — [`@dig-network/cxch-core`](https://www.npmjs.com/package/@dig-network/cxch-core)
+### npm (TypeScript / WASM) — [`@dig-network/cmojo-core`](https://www.npmjs.com/package/@dig-network/cmojo-core)
 
 ```bash
-npm install @dig-network/cxch-core
+npm install @dig-network/cmojo-core
 ```
 
 ```ts
-import init, { wrap, melt } from "@dig-network/cxch-core";
+import init, { wrap, melt } from "@dig-network/cmojo-core";
 
 await init();
 const bundle = wrap({
@@ -97,19 +97,19 @@ const bundle = wrap({
   mint_amount_mojos,
   fee_mojos,
 });
-// melt({ cxch_coins, anchor_coins, recipient_puzzle_hash,
+// melt({ cmojo_coins, anchor_coins, recipient_puzzle_hash,
 //   cat_change_puzzle_hash, melt_amount_mojos, fee_mojos }) is symmetric.
 // The 0.1% dev fee is already included.
 ```
 
-### crates.io (Rust) — [`cxch-core`](https://crates.io/crates/cxch-core)
+### crates.io (Rust) — [`cmojo-core`](https://crates.io/crates/cmojo-core)
 
 ```bash
-cargo add cxch-core
+cargo add cmojo-core
 ```
 
 ```rust
-use cxch_core::{wrap, melt, WrapParams, MeltParams};
+use cmojo_core::{wrap, melt, WrapParams, MeltParams};
 
 let bundle = wrap(WrapParams { /* coins, recipient, mint_amount, … */ })?;
 // melt(MeltParams { … })? is symmetric. The dev fee is baked in.
@@ -122,16 +122,16 @@ app, or `docs/SECURITY.md`) is equally valid.
 
 ## How wrap and melt are built
 
-The Rust core (`cxch-core`) uses the real
+The Rust core (`cmojo-core`) uses the real
 [`chia-wallet-sdk`](https://github.com/xch-dev/chia-wallet-sdk) 0.27 driver
 primitives:
 
 - **Wrap** (`wrap.rs`) uses `Cat::issue_with_key` with
   `EverythingWithSignatureTailArgs(issuer_pk)`. The funder XCH coin emits the
   conditions that create the CAT eve coin (plus change and fee); the eve coin's
-  inner puzzle mints the cXCH to the recipient. The 1:1 backing is guaranteed by
+  inner puzzle mints the cMojo to the recipient. The 1:1 backing is guaranteed by
   the bundle's mojo balance.
-- **Melt** (`melt.rs`) reveals the TAIL on the first cXCH coin via
+- **Melt** (`melt.rs`) reveals the TAIL on the first cMojo coin via
   `Conditions::run_cat_tail`, and `Cat::spend_all` computes the negative
   `extra_delta` automatically. Because a CAT coin can only create CAT children,
   the freed mojos are claimed by an ordinary **anchor** XCH coin spent in the
@@ -153,7 +153,7 @@ bindings, the BLS signatures, and the bundle mojo balance (the source of the
 peg):
 
 ```bash
-cd cxch-core
+cd cmojo-core
 cargo test
 ```
 
@@ -179,7 +179,7 @@ The CHIP-0002 contract used by the frontend is taken from Sage's source
   `standardPuzzleHash` (no extra synthetic derivation).
 - `chip0002_signCoinSpends` takes `{ coinSpends, partialSign }`, where each coin
   spend uses snake_case `coin` fields plus `puzzle_reveal` / `solution` — exactly
-  what cxch-core emits — and returns the aggregated signature as a string. We
+  what cmojo-core emits — and returns the aggregated signature as a string. We
   call it with `partialSign: true` and aggregate the issuer's TAIL signature.
 - `chip0002_getAssetCoins` returns coins with a `lineageProof`
   (`{ parentName, innerPuzzleHash, amount }`), mapped for melt.
@@ -215,7 +215,7 @@ cp .env.example .env.local   # set NEXT_PUBLIC_WC_PROJECT_ID
 npm run dev                  # http://localhost:3000
 ```
 
-cXCH is mainnet-only: the chain id (`chia:mainnet`) is fixed in code and the
+cMojo is mainnet-only: the chain id (`chia:mainnet`) is fixed in code and the
 default `NEXT_PUBLIC_COINSET_API` points at `https://api.coinset.org`.
 
 ### Production build (static export)
@@ -234,9 +234,9 @@ npm run build        # → app/out/
 Tagging a release as `v*` triggers `.github/workflows/release.yml`, which builds
 and publishes both packages from the same source:
 
-- **npm** — stamps the WASM package as `@dig-network/cxch-core@<tag>` and runs
+- **npm** — stamps the WASM package as `@dig-network/cmojo-core@<tag>` and runs
   `npm publish` (needs the `NPM_TOKEN` repo secret).
-- **crates.io** — stamps `cxch-core`'s version and runs `cargo publish` (needs
+- **crates.io** — stamps `cmojo-core`'s version and runs `cargo publish` (needs
   the `CARGO_REGISTRY_TOKEN` repo secret).
 
 Both surfaces expose the same `wrap` / `melt` interface with the dev fee baked
@@ -244,7 +244,7 @@ in, so integrators get identical behavior whichever they install.
 
 ## Security notes
 
-- **No reserve to drain.** The XCH backing is intrinsic to each cXCH coin, not
+- **No reserve to drain.** The XCH backing is intrinsic to each cMojo coin, not
   held in any pool, vault, or bridge. Mojo conservation — enforced by Chia
   consensus on every spend bundle — is the entire peg; there is no separate
   proof-of-reserves because there is nothing separate to prove.

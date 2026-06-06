@@ -1,7 +1,7 @@
-//! cXCH spend-bundle builder.
+//! cMojo spend-bundle builder.
 //!
 //! This crate builds the unsigned coin spends for wrapping (minting) and melting
-//! (burning) cXCH, a 1:1 wrapped representation of native XCH expressed as a
+//! (burning) cMojo, a 1:1 wrapped representation of native XCH expressed as a
 //! CAT2 token. It compiles both to a native library (for the simulator tests)
 //! and to WebAssembly (consumed by the Next.js frontend).
 //!
@@ -40,25 +40,25 @@ fn to_js<T: Serialize>(value: &T) -> std::result::Result<JsValue, JsValue> {
         .map_err(|e| JsError::new(&e.to_string()).into())
 }
 
-/// The canonical cXCH asset id (TAIL hash), as a `0x`-prefixed hex string.
+/// The canonical cMojo asset id (TAIL hash), as a `0x`-prefixed hex string.
 #[wasm_bindgen]
-pub fn cxch_asset_id() -> String {
-    format!("0x{}", hex::encode(tail::cxch_asset_id().to_bytes()))
+pub fn cmojo_asset_id() -> String {
+    format!("0x{}", hex::encode(tail::cmojo_asset_id().to_bytes()))
 }
 
-/// The cXCH issuer public key, as a `0x`-prefixed hex string.
+/// The cMojo issuer public key, as a `0x`-prefixed hex string.
 #[wasm_bindgen]
 pub fn issuer_public_key() -> String {
     format!("0x{}", hex::encode(constants::issuer_pk().to_bytes()))
 }
 
-/// The CAT2 outer puzzle hash for a cXCH coin with the given inner puzzle hash.
+/// The CAT2 outer puzzle hash for a cMojo coin with the given inner puzzle hash.
 #[wasm_bindgen]
-pub fn cxch_outer_puzzle_hash(inner_puzzle_hash: String) -> std::result::Result<String, JsValue> {
+pub fn cmojo_outer_puzzle_hash(inner_puzzle_hash: String) -> std::result::Result<String, JsValue> {
     let inner = parse_bytes32(&inner_puzzle_hash)?;
     Ok(format!(
         "0x{}",
-        hex::encode(tail::cxch_outer_puzzle_hash(inner).to_bytes())
+        hex::encode(tail::cmojo_outer_puzzle_hash(inner).to_bytes())
     ))
 }
 
@@ -144,9 +144,9 @@ pub fn melt(request: JsValue) -> std::result::Result<JsValue, JsValue> {
     let dto: MeltRequestDto = serde_wasm_bindgen::from_value(request)
         .map_err(|e| Error::Serde(e.to_string()))?;
 
-    let mut cxch_coins = Vec::with_capacity(dto.cxch_coins.len());
-    for coin in &dto.cxch_coins {
-        cxch_coins.push(coin.to_cxch_coin()?);
+    let mut cmojo_coins = Vec::with_capacity(dto.cmojo_coins.len());
+    for coin in &dto.cmojo_coins {
+        cmojo_coins.push(coin.to_cmojo_coin()?);
     }
     let mut anchor_coins = Vec::with_capacity(dto.anchor_coins.len());
     for coin in &dto.anchor_coins {
@@ -154,7 +154,7 @@ pub fn melt(request: JsValue) -> std::result::Result<JsValue, JsValue> {
     }
 
     let params = melt::MeltParams {
-        cxch_coins,
+        cmojo_coins,
         anchor_coins,
         recipient_puzzle_hash: parse_bytes32(&dto.recipient_puzzle_hash)?,
         cat_change_puzzle_hash: parse_bytes32(&dto.cat_change_puzzle_hash)?,
@@ -171,7 +171,7 @@ pub fn melt(request: JsValue) -> std::result::Result<JsValue, JsValue> {
 /// WASM interface, with the dev fee baked in. Import and call directly:
 ///
 /// ```ignore
-/// use cxch_core::{wrap, melt, WrapParams, MeltParams};
+/// use cmojo_core::{wrap, melt, WrapParams, MeltParams};
 /// let bundle = wrap(WrapParams { /* coins, recipient, mint_amount, ... */ })?;
 /// ```
 ///
@@ -190,7 +190,7 @@ pub fn melt(params: MeltParams) -> Result<UnsignedSpendBundle> {
 // targets; `wrap`/`melt` above are the canonical entry points).
 pub use melt::build_melt;
 pub use melt::MeltParams;
-pub use spend::{CxchCoin, StandardCoin, UnsignedSpendBundle};
+pub use spend::{CmojoCoin, StandardCoin, UnsignedSpendBundle};
 pub use wrap::build_wrap;
 pub use wrap::WrapParams;
 

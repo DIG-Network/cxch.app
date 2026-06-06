@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 285 96" role="img" aria-label="cMOJO — Wrapped Mojos on Chia">
+  <svg x="12" y="12" width="72" height="72" viewBox="0 0 64 64">
+    <defs>
+      <clipPath id="lc"><circle cx="32" cy="32" r="32"></circle></clipPath>
+      <radialGradient id="lb" cx="72%" cy="82%" r="78%"><stop offset="0%" stop-color="#3fb950" stop-opacity="0.22"></stop><stop offset="60%" stop-color="#3fb950" stop-opacity="0"></stop></radialGradient>
+      <linearGradient id="lf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#131a26"></stop><stop offset="72%" stop-color="#0b0f17"></stop></linearGradient>
+    </defs>
+    <g clip-path="url(#lc)">
+      <rect width="64" height="64" fill="url(#lf)"></rect><rect width="64" height="64" fill="url(#lb)"></rect>
+      <circle cx="32" cy="32" r="23.5" fill="none" stroke="#3fb950" stroke-opacity="0.12"></circle>
+      <circle cx="32" cy="32" r="15.5" fill="none" stroke="#3fb950" stroke-opacity="0.09"></circle>
+      <text x="32" y="33" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif, system-ui, -apple-system, &#39;Segoe UI&#39;, Roboto, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" letter-spacing="-0.5" fill="#3fb950">cMOJO</text>
+    </g>
+    <circle cx="32" cy="32" r="31.5" fill="none" stroke="#3fb950" stroke-opacity="0.18"></circle></svg>
+  <text x="102" y="44" font-family="ui-sans-serif, system-ui, -apple-system, &#39;Segoe UI&#39;, Roboto, Helvetica, Arial, sans-serif" font-weight="700" font-size="34" letter-spacing="-0.8" fill="#e6edf3">cMOJO</text>
+  <text x="104" y="68" font-family="ui-sans-serif, system-ui, -apple-system, &#39;Segoe UI&#39;, Roboto, Helvetica, Arial, sans-serif" font-weight="600" font-size="15" letter-spacing="0.1" fill="#3fb950">Wrapped Mojos on Chia</text>
+</svg>

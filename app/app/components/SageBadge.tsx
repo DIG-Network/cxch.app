@@ -1,6 +1,6 @@
 "use client";
 
-// SageBadge — companion to PoweredByChia. cXCH connects through Sage Wallet
+// SageBadge — companion to PoweredByChia. cMojo connects through Sage Wallet
 // over WalletConnect, so this links to the Sage download. Styled to mirror the
 // Powered-by-Chia chip (same pill, border, hover lift) so the two read as a
 // cohesive pair.

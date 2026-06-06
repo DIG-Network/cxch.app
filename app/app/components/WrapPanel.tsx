@@ -20,7 +20,7 @@ import { useSpendConfirm, type PreparedSpend } from "./SpendConfirm";
 
 const DEFAULT_FEE = BigInt(process.env.NEXT_PUBLIC_DEFAULT_FEE_MOJOS ?? "100000000");
 
-/** 0.1% dev fee (10 basis points, floored) — must mirror cxch-core. */
+/** 0.1% dev fee (10 basis points, floored) — must mirror cmojo-core. */
 function devFee(amount: bigint): bigint {
   return (amount * 10n) / 10_000n;
 }
@@ -116,8 +116,8 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
         // Watch the first funder coin's SPEND on coinset — bundle landed.
         watchCoinId: extractCoinName(selected[0].raw),
         summary: [
-          { label: "Action", value: "Wrap XCH → cXCH" },
-          { label: "Mint", value: `${amount} cXCH`, strong: true },
+          { label: "Action", value: "Wrap XCH → cMojo" },
+          { label: "Mint", value: `${amount} cMojo`, strong: true },
           { label: "XCH locked", value: `${amount} XCH` },
           { label: "Fee", value: `${mojosToXch(DEFAULT_FEE)} XCH` },
           { label: "Dev fee (0.1%)", value: `${mojosToXch(devFee(mintMojos))} XCH` },
@@ -128,7 +128,7 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
 
     try {
       await runSpend({ title: `Wrap ${amount} XCH`, prepare });
-      toast.success(`Wrapped ${amount} XCH → cXCH`);
+      toast.success(`Wrapped ${amount} XCH → cMojo`);
       setAmount("");
       onDone();
     } catch {
@@ -138,9 +138,9 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
-      <h2 className="text-lg font-semibold">Wrap XCH → cXCH</h2>
+      <h2 className="text-lg font-semibold">Wrap XCH → cMojo</h2>
       <p className="mt-1 text-sm text-gray-400">
-        Lock XCH and receive an equal amount of cXCH, backed 1:1 by consensus.
+        Lock XCH and receive an equal amount of cMojo, backed 1:1 by consensus.
       </p>
       <div className="mt-4 flex gap-2">
         <div className="relative flex-1">

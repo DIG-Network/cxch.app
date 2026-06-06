@@ -44,9 +44,12 @@ function Content() {
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-5 p-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">cXCH</h1>
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/cmojo-disc.svg" alt="" aria-hidden className="h-11 w-11 shrink-0" />
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">cMojo</h1>
             {/* Prerelease badge — this is unaudited, experimental software. */}
             <span
               className="rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wider"
@@ -60,7 +63,8 @@ function Content() {
               Pre-release
             </span>
           </div>
-          <p className="text-sm text-gray-400">1:1 wrapped XCH, as a CAT2 token</p>
+            <p className="text-sm text-gray-400">1:1 wrapped XCH, as a CAT2 token</p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <TabNav tab={tab} setTab={setTab} />
@@ -68,7 +72,7 @@ function Content() {
             href="https://github.com/DIG-Network/cXCH_DAPP"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="View cXCH on GitHub"
+            aria-label="View cMojo on GitHub"
             title="View on GitHub"
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm hover:border-[var(--accent)] hover:text-[var(--accent)]"
           >
@@ -110,7 +114,7 @@ export default function Page() {
   useEffect(() => {
     ensureWasm()
       .then(() => setReady(true))
-      .catch((e) => console.error("Failed to load cXCH engine", e));
+      .catch((e) => console.error("Failed to load cMojo engine", e));
   }, []);
 
   return (
@@ -119,7 +123,7 @@ export default function Page() {
       {!ready ? (
         <main className="mx-auto max-w-xl p-6">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-8 text-center text-gray-400">
-            Loading cXCH engine…
+            Loading cMojo engine…
           </div>
         </main>
       ) : (

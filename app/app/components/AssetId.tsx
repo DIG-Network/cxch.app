@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { cxch_asset_id } from "../lib/wasm";
+import { cmojo_asset_id } from "../lib/wasm";
 
-// Prominently displays the canonical cXCH CAT asset id. Clicking it copies the
+// Prominently displays the canonical cMojo CAT asset id. Clicking it copies the
 // full asset id to the clipboard.
 export function AssetId() {
-  const assetId = cxch_asset_id();
+  const assetId = cmojo_asset_id();
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -28,7 +28,7 @@ export function AssetId() {
       className="group w-full rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 text-left transition hover:border-[var(--accent)]"
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wide text-gray-400">cXCH Asset ID</span>
+        <span className="text-xs uppercase tracking-wide text-gray-400">cMojo Asset ID</span>
         <span className="text-xs text-gray-500 group-hover:text-[var(--accent)]">
           {copied ? "Copied ✓" : "Click to copy"}
         </span>

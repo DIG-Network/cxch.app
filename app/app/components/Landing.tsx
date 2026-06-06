@@ -1,6 +1,6 @@
 "use client";
 
-// Landing — what cXCH is (XCH as a CAT) and why you'd use it.
+// Landing — what cMojo is (XCH as a CAT) and why you'd use it.
 // Shown on the App tab when no wallet is connected. Mirrors the structure of
 // the shielded-wallet reference landing: hero (message + visual), a two-card
 // "what it is" compare, how-it-works steps, why-use-it features, closing CTA.
@@ -29,9 +29,9 @@ export function Landing() {
             Your XCH, inside the CAT.
           </h1>
           <p className="mt-4 max-w-md text-base leading-relaxed text-gray-400">
-            cXCH embeds native XCH <strong>directly into the token</strong> — one
+            cMojo embeds native XCH <strong>directly into the token</strong> — one
             mojo for one mojo. The XCH isn&apos;t held in a treasury or a bridge;
-            it <em>is</em> the CAT. Own the cXCH and you own the XCH, and you can
+            it <em>is</em> the CAT. Own the cMojo and you own the XCH, and you can
             always recover it by melting the CAT back to native XCH.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -41,7 +41,7 @@ export function Landing() {
             <span className="font-medium text-[var(--foreground)]">
               No treasury to trust. No custodian. No bridge.
             </span>{" "}
-            The XCH value is an intrinsic property of each cXCH coin — a coin of N
+            The XCH value is an intrinsic property of each cMojo coin — a coin of N
             mojos literally holds N mojos of XCH. Melting unlocks exactly that,
             enforced by Chia consensus. Your keys never leave your wallet.
           </p>
@@ -72,7 +72,7 @@ export function Landing() {
               style={{ inset: "28%", border: "1px solid rgba(63,185,80,0.12)" }}
             />
             <span className="relative text-7xl font-bold text-[var(--accent)]">
-              cXCH
+              cMojo
             </span>
           </div>
           <div className="flex items-center gap-3 text-sm">
@@ -93,7 +93,7 @@ export function Landing() {
                 background: "rgba(63,185,80,0.08)",
               }}
             >
-              ⬡ cXCH
+              ⬡ cMojo
             </span>
           </div>
         </div>
@@ -119,7 +119,7 @@ export function Landing() {
             Built on standard, audited Chia puzzles — no custom on-chain code
           </div>
           <p className="mt-1 text-sm leading-relaxed text-gray-400">
-            cXCH is assembled entirely from the same battle-tested primitives
+            cMojo is assembled entirely from the same battle-tested primitives
             Chia and every CAT already rely on: the <strong>CAT2 layer</strong>,
             the <strong>standard payment puzzle</strong>, and a published-key{" "}
             <strong>TAIL</strong>. There is no bespoke contract to trust or to
@@ -148,11 +148,11 @@ export function Landing() {
           style={{ borderColor: "rgba(63,185,80,0.35)" }}
         >
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--accent)]">
-            ⬡ cXCH
+            ⬡ cMojo
           </span>
           <p className="mt-3 text-sm leading-relaxed text-gray-400">
             The same XCH, with the coin&apos;s mojos carried <em>inside</em> a
-            standard CAT2 token. The XCH is embedded in the cXCH itself — not
+            standard CAT2 token. The XCH is embedded in the cMojo itself — not
             parked in a treasury — so holding the CAT <em>is</em> holding the
             XCH, recoverable any time by melting.
           </p>
@@ -169,34 +169,34 @@ export function Landing() {
           <HowCard
             icon="🔗"
             title="Connect"
-            body="Connect Sage Wallet over WalletConnect. cXCH never holds your keys or funds."
+            body="Connect Sage Wallet over WalletConnect. cMojo never holds your keys or funds."
           />
           <HowCard
             icon="↓"
             title="Wrap"
-            body="Spend XCH, mint the same number of cXCH mojos in one atomic bundle. Consensus rejects anything unbalanced."
+            body="Spend XCH, mint the same number of cMojo mojos in one atomic bundle. Consensus rejects anything unbalanced."
           />
           <HowCard
             icon="↑"
             title="Melt"
-            body="Burn cXCH and the XCH embedded in it re-emerges as native XCH in the same block. No lock-up, no queue, no permission."
+            body="Burn cMojo and the XCH embedded in it re-emerges as native XCH in the same block. No lock-up, no queue, no permission."
           />
         </div>
       </section>
 
       {/* Why use it */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold">Why cXCH</h2>
+        <h2 className="mb-4 text-lg font-semibold">Why cMojo</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <HowCard
             icon="🔒"
             title="No treasury to trust"
-            body="The XCH lives inside each cXCH coin — a coin of N mojos holds exactly N mojos of XCH. There is no reserve, vault, or bridge anyone could drain, freeze, or rug. Nothing to trust but Chia consensus."
+            body="The XCH lives inside each cMojo coin — a coin of N mojos holds exactly N mojos of XCH. There is no reserve, vault, or bridge anyone could drain, freeze, or rug. Nothing to trust but Chia consensus."
           />
           <HowCard
             icon="♻️"
             title="Always recoverable"
-            body="Owning the cXCH IS owning the XCH. Melt the CAT and the embedded mojos re-emerge as native XCH in the same block — anyone, any size, any time, no permission and no counterparty."
+            body="Owning the cMojo IS owning the XCH. Melt the CAT and the embedded mojos re-emerge as native XCH in the same block — anyone, any size, any time, no permission and no counterparty."
           />
           <HowCard
             icon="🧩"
@@ -217,7 +217,7 @@ export function Landing() {
         <div>
           <div className="font-semibold">Ready to wrap?</div>
           <p className="text-sm text-gray-400">
-            Connect Sage and mint your first cXCH in one signature.
+            Connect Sage and mint your first cMojo in one signature.
           </p>
         </div>
         <ConnectButton />

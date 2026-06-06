@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
-import { melt as buildMelt, cxch_asset_id, puzzle_hash_to_address } from "../lib/wasm";
+import { melt as buildMelt, cmojo_asset_id, puzzle_hash_to_address } from "../lib/wasm";
 import { mojosToXch, xchToMojos } from "../lib/format";
 import {
   buildCatKeyResolver,
@@ -22,7 +22,7 @@ import { useSpendConfirm, type PreparedSpend } from "./SpendConfirm";
 
 const DEFAULT_FEE = BigInt(process.env.NEXT_PUBLIC_DEFAULT_FEE_MOJOS ?? "100000000");
 
-/** 0.1% dev fee (10 basis points, floored) — must mirror cxch-core. */
+/** 0.1% dev fee (10 basis points, floored) — must mirror cmojo-core. */
 function devFee(amount: bigint): bigint {
   return (amount * 10n) / 10_000n;
 }
@@ -31,21 +31,21 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
   const { session, request } = useSage();
   const { runSpend, active } = useSpendConfirm();
   const [amount, setAmount] = useState("");
-  const [cxchBalance, setCxchBalance] = useState<bigint | null>(null);
+  const [cmojoBalance, setCmojoBalance] = useState<bigint | null>(null);
 
-  // Track the cXCH balance so "Max" can fill the whole burnable amount. The
+  // Track the cMojo balance so "Max" can fill the whole burnable amount. The
   // network and dev fees come out of the released XCH, so the full CAT balance
   // is always meltable. Re-polled every ~10s, mirroring the Balances card.
   useEffect(() => {
     if (!session) {
-      setCxchBalance(null);
+      setCmojoBalance(null);
       return;
     }
     let cancelled = false;
     const load = async () => {
       try {
-        const coins = await getAssetCoins(request, "cat", cxch_asset_id());
-        if (!cancelled) setCxchBalance(sumCoinAmounts(coins));
+        const coins = await getAssetCoins(request, "cat", cmojo_asset_id());
+        if (!cancelled) setCmojoBalance(sumCoinAmounts(coins));
       } catch {
         /* transient — keep the last known value */
       }
@@ -59,8 +59,8 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
   }, [session, request]);
 
   function fillMax() {
-    if (cxchBalance === null) return;
-    setAmount(cxchBalance > 0n ? mojosToXch(cxchBalance) : "0");
+    if (cmojoBalance === null) return;
+    setAmount(cmojoBalance > 0n ? mojosToXch(cmojoBalance) : "0");
   }
 
   async function melt() {
@@ -85,9 +85,9 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
       const catResolver = buildCatKeyResolver(publicKeys);
       const recipientPuzzleHash = await getReceivePuzzleHash(request);
 
-      report("Selecting cXCH coins");
-      // Select cXCH (CAT) coins to burn.
-      const rawCats = await getAssetCoins(request, "cat", cxch_asset_id());
+      report("Selecting cMojo coins");
+      // Select cMojo (CAT) coins to burn.
+      const rawCats = await getAssetCoins(request, "cat", cmojo_asset_id());
       const cats = rawCats.map((raw) => {
         const coin = normalizeCoin(raw);
         return { raw, coin, amount: coin.amount };
@@ -110,9 +110,9 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
       );
 
       report("Building spend bundle");
-      const cxch_coins = selectedCats.map(({ raw, coin }) => {
+      const cmojo_coins = selectedCats.map(({ raw, coin }) => {
         const synthetic_key = catResolver(coin.puzzle_hash);
-        if (!synthetic_key) throw new Error(`No known key for cXCH coin at ${coin.puzzle_hash}`);
+        if (!synthetic_key) throw new Error(`No known key for cMojo coin at ${coin.puzzle_hash}`);
         const rawObj = raw as Record<string, unknown>;
         const lineage_proof = normalizeLineageProof(
           rawObj.lineageProof ?? rawObj.lineage_proof
@@ -127,7 +127,7 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
       });
 
       const built = buildMelt({
-        cxch_coins,
+        cmojo_coins,
         anchor_coins,
         recipient_puzzle_hash: recipientPuzzleHash,
         cat_change_puzzle_hash: recipientPuzzleHash,
@@ -137,11 +137,11 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
 
       return {
         built,
-        // Watch the first burned cXCH coin's SPEND on coinset — bundle landed.
+        // Watch the first burned cMojo coin's SPEND on coinset — bundle landed.
         watchCoinId: extractCoinName(selectedCats[0].raw),
         summary: [
-          { label: "Action", value: "Melt cXCH → XCH" },
-          { label: "Burn", value: `${amount} cXCH`, strong: true },
+          { label: "Action", value: "Melt cMojo → XCH" },
+          { label: "Burn", value: `${amount} cMojo`, strong: true },
           { label: "XCH released", value: `${amount} XCH` },
           { label: "Fee", value: `${mojosToXch(DEFAULT_FEE)} XCH` },
           { label: "Dev fee (0.1%)", value: `${mojosToXch(devFee(meltMojos))} XCH` },
@@ -151,8 +151,8 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
     };
 
     try {
-      await runSpend({ title: `Melt ${amount} cXCH`, prepare });
-      toast.success(`Melted ${amount} cXCH → XCH`);
+      await runSpend({ title: `Melt ${amount} cMojo`, prepare });
+      toast.success(`Melted ${amount} cMojo → XCH`);
       setAmount("");
       onDone();
     } catch {
@@ -162,9 +162,9 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-5">
-      <h2 className="text-lg font-semibold">Melt cXCH → XCH</h2>
+      <h2 className="text-lg font-semibold">Melt cMojo → XCH</h2>
       <p className="mt-1 text-sm text-gray-400">
-        Burn cXCH and release the same amount of native XCH (minus the fee).
+        Burn cMojo and release the same amount of native XCH (minus the fee).
       </p>
       <div className="mt-4 flex gap-2">
         <div className="relative flex-1">
@@ -178,7 +178,7 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
           <button
             type="button"
             onClick={fillMax}
-            disabled={!session || cxchBalance === null}
+            disabled={!session || cmojoBalance === null}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-[var(--border)] px-2 py-1 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-50"
           >
             Max
@@ -193,7 +193,7 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
         </button>
       </div>
       <p className="mt-2 text-xs text-gray-500">
-        Balance: {cxchBalance === null ? "…" : `${mojosToXch(cxchBalance)} cXCH`}
+        Balance: {cmojoBalance === null ? "…" : `${mojosToXch(cmojoBalance)} cMojo`}
       </p>
     </section>
   );

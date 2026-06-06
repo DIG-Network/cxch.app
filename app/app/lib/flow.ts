@@ -30,7 +30,7 @@ function extractSignature(response: unknown): string {
  * resulting spend bundle. Returns the coinset push_tx status.
  *
  * The coin spends are sent in exactly the shape Sage expects (snake_case coin
- * fields and `puzzle_reveal` / `solution`), which is what cxch-core already
+ * fields and `puzzle_reveal` / `solution`), which is what cmojo-core already
  * emits, so no conversion is needed. `partialSign: true` makes Sage sign only
  * the standard-coin signatures it controls, leaving the issuer's TAIL signature
  * for us to aggregate.
