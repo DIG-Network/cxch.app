@@ -4,12 +4,13 @@ import "./globals.css";
 // Public origin used to build absolute URLs for social cards. Override per
 // deployment with NEXT_PUBLIC_SITE_URL (must be the canonical https origin —
 // scrapers require absolute image URLs).
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cxch.io";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cxch.app";
 
 const TITLE = "cXCH — Wrapped XCH on Chia";
 const DESCRIPTION =
-  "Wrap XCH into a 1:1 reserve-backed CAT2 token, and melt it back anytime. " +
-  "Permissionless, with a consensus-enforced peg — no custodian, no bridge.";
+  "Wrap XCH into a 1:1-backed CAT2 token with the XCH embedded inside the coin, " +
+  "and melt it back to native XCH anytime. Permissionless, with a " +
+  "consensus-enforced peg — no reserve, no custodian, no bridge.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
