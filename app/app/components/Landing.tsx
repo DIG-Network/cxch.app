@@ -29,10 +29,11 @@ export function Landing() {
             Your XCH, inside the CAT.
           </h1>
           <p className="mt-4 max-w-md text-base leading-relaxed text-gray-400">
-            cMojo embeds native XCH <strong>directly into the token</strong> — one
-            mojo for one mojo. The XCH isn&apos;t held in a treasury or a bridge;
-            it <em>is</em> the CAT. Own the cMojo and you own the XCH, and you can
-            always recover it by melting the CAT back to native XCH.
+            Convert your XCH into cMojo whenever you need{" "}
+            <strong>value-preserving CATs</strong> — tokens that carry native XCH
+            inside them, one mojo for one mojo. The XCH isn&apos;t held in a
+            treasury or a bridge; it <em>is</em> the CAT. Own the cMojo and you
+            own the XCH, and recover it any time by melting back to native XCH.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <ConnectButton />
