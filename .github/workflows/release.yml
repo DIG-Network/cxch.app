@@ -1,0 +1,111 @@
+name: Release WASM to npm
+
+# Builds the cxch-core Rust → WASM package and publishes it to npm whenever a
+# version tag is pushed (e.g. `v0.2.0`). The published package version is taken
+# from the tag, and the package is scoped to the DIG-Network org.
+#
+# Requires the repo/org secret NPM_TOKEN (an npmjs.com automation token with
+# publish rights to the @dig-network scope).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish-wasm:
+    name: build + publish @dig-network/cxch-core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cxch-core
+
+      # blst (a chia-bls dependency) needs clang to compile its C to wasm.
+      - name: Install clang
+        run: sudo apt-get update && sudo apt-get install -y clang
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked || cargo install wasm-pack
+
+      - name: Run simulator tests (gate the release)
+        working-directory: cxch-core
+        run: cargo test --release
+
+      - name: Build WASM package
+        working-directory: cxch-core
+        run: wasm-pack build --release --target web --out-dir ../app/wasm-pkg
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      # Stamp the published package: scoped name, tag version, correct repo,
+      # public access. wasm-pack generates the rest of package.json.
+      - name: Stamp package.json
+        working-directory: app/wasm-pkg
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            p.name = "@dig-network/cxch-core";
+            p.version = process.env.VERSION;
+            p.repository = { type: "git", url: "git+https://github.com/DIG-Network/cXCH_DAPP.git" };
+            p.publishConfig = { access: "public" };
+            fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");
+            console.log("publishing", p.name + "@" + p.version);
+          '
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+
+      - name: Publish to npm
+        working-directory: app/wasm-pkg
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-crate:
+    name: build + publish cxch-core to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cxch-core
+
+      - name: Install clang (blst needs it)
+        run: sudo apt-get update && sudo apt-get install -y clang
+
+      # crates.io requires Cargo.toml's version to match the release; stamp it.
+      - name: Stamp crate version from tag
+        working-directory: cxch-core
+        run: |
+          sed -i -E "0,/^version = \".*\"/s//version = \"${{ steps.ver.outputs.version }}\"/" Cargo.toml
+          grep -m1 '^version' Cargo.toml
+
+      - name: Publish to crates.io
+        working-directory: cxch-core
+        run: cargo publish --allow-dirty --token "$CARGO_REGISTRY_TOKEN"
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

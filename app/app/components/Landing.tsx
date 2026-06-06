@@ -6,6 +6,7 @@
 // "what it is" compare, how-it-works steps, why-use-it features, closing CTA.
 
 import { ConnectButton } from "./ConnectButton";
+import PoweredByChia from "./PoweredByChia";
 
 export function Landing() {
   return (
@@ -24,23 +25,24 @@ export function Landing() {
             ⬡ 1:1 backed · permissionless · Chia mainnet
           </span>
           <h1 className="text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
-            XCH as a CAT.
+            Your XCH, inside the CAT.
           </h1>
           <p className="mt-4 max-w-md text-base leading-relaxed text-gray-400">
-            cXCH wraps native XCH into a standard CAT2 token, one mojo for one
-            mojo. Use XCH anywhere CATs go — AMM pools, offer files, token
-            tooling — and melt back to native XCH whenever you want.
+            cXCH embeds native XCH <strong>directly into the token</strong> — one
+            mojo for one mojo. The XCH isn&apos;t held in a treasury or a bridge;
+            it <em>is</em> the CAT. Own the cXCH and you own the XCH, and you can
+            always recover it by melting the CAT back to native XCH.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <ConnectButton />
           </div>
           <p className="mt-3 max-w-md text-xs leading-relaxed text-gray-500">
             <span className="font-medium text-[var(--foreground)]">
-              No custodian. No contract risk.
+              No treasury to trust. No custodian. No bridge.
             </span>{" "}
-            The 1:1 peg is enforced by Chia consensus itself — every mint locks
-            exactly as much XCH as it issues, and every melt frees it back. Your
-            keys stay in your wallet.
+            The XCH value is an intrinsic property of each cXCH coin — a coin of N
+            mojos literally holds N mojos of XCH. Melting unlocks exactly that,
+            enforced by Chia consensus. Your keys never leave your wallet.
           </p>
         </div>
 
@@ -116,9 +118,10 @@ export function Landing() {
             ⬡ cXCH
           </span>
           <p className="mt-3 text-sm leading-relaxed text-gray-400">
-            The same XCH, expressed as a standard CAT2 token with a single
-            canonical asset id. Every cXCH mojo is backed by a real XCH mojo
-            locked at mint — redeemable by anyone, any time, with no permission.
+            The same XCH, with the coin&apos;s mojos carried <em>inside</em> a
+            standard CAT2 token. The XCH is embedded in the cXCH itself — not
+            parked in a treasury — so holding the CAT <em>is</em> holding the
+            XCH, recoverable any time by melting.
           </p>
         </div>
       </section>
@@ -143,7 +146,7 @@ export function Landing() {
           <HowCard
             icon="↑"
             title="Melt"
-            body="Burn cXCH and the locked mojos re-emerge as ordinary XCH in the same block. No lock-up, no queue."
+            body="Burn cXCH and the XCH embedded in it re-emerges as native XCH in the same block. No lock-up, no queue, no permission."
           />
         </div>
       </section>
@@ -153,14 +156,14 @@ export function Landing() {
         <h2 className="mb-4 text-lg font-semibold">Why cXCH</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <HowCard
-            icon="⚖️"
-            title="Consensus-enforced peg"
-            body="No bridge, no multisig, no oracle. A mint is only valid if the bundle consumes exactly as much XCH as it issues — the rule every Chia node already enforces."
+            icon="🔒"
+            title="No treasury to trust"
+            body="The XCH lives inside each cXCH coin — a coin of N mojos holds exactly N mojos of XCH. There is no reserve, vault, or bridge anyone could drain, freeze, or rug. Nothing to trust but Chia consensus."
           />
           <HowCard
-            icon="🔓"
-            title="Permissionless mint & melt"
-            body="The issuer key is published on purpose. Anyone can wrap or melt at any size without asking — the signature only authorises supply changes, never custody."
+            icon="♻️"
+            title="Always recoverable"
+            body="Owning the cXCH IS owning the XCH. Melt the CAT and the embedded mojos re-emerge as native XCH in the same block — anyone, any size, any time, no permission and no counterparty."
           />
           <HowCard
             icon="🧩"
@@ -168,6 +171,11 @@ export function Landing() {
             body="One canonical asset id that AMMs, offer files, and wallets already understand. Bring XCH liquidity anywhere CATs are traded."
           />
         </div>
+      </section>
+
+      {/* Powered by Chia — cursor-reactive glow chip */}
+      <section>
+        <PoweredByChia />
       </section>
 
       {/* Closing CTA */}

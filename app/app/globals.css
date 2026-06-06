@@ -23,3 +23,152 @@ body {
 input {
   color: var(--foreground);
 }
+.pbc-wrap {
+  display: flex;
+  justify-content: center;
+}
+.pbc-chip {
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  isolation: isolate;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: 18px;
+  background: rgba(8, 22, 12, 0.5);
+  border: 1px solid rgba(94, 206, 113, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.pbc-chip:hover {
+  transform: translateY(-3px) scale(1.04);
+  border-color: rgba(94, 206, 113, 0.7);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4), 0 0 28px rgba(94, 206, 113, 0.45);
+}
+.pbc-chip:active {
+  transform: translateY(-1px) scale(1.01);
+}
+/* glow blob clipped inside the chip; JS places it on the border point nearest the cursor */
+.pbc-glow {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  left: var(--gx, 50%);
+  top: var(--gy, 0px);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #5ece71 30%,
+    rgba(94, 206, 113, 0.5) 52%,
+    transparent 74%
+  );
+  filter: blur(9px);
+  pointer-events: none;
+  z-index: -1;
+  opacity: var(--pglow, 0.6);
+  transition: opacity 0.25s ease;
+}
+.pbc-chip:hover .pbc-glow {
+  opacity: 1;
+}
+/* periodic sheen sweep across the chip */
+.pbc-sheen {
+  position: absolute;
+  top: 0;
+  left: -20%;
+  width: 130%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  filter: blur(8px);
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.03) 30%,
+    rgba(255, 255, 255, 0.13) 50%,
+    rgba(255, 255, 255, 0.03) 70%,
+    transparent 100%
+  );
+  transform: translateX(-160%) skewX(-18deg);
+  animation: pbcSheen 12s ease-in-out infinite;
+}
+@keyframes pbcSheen {
+  0% {
+    transform: translateX(-160%) skewX(-18deg);
+  }
+  40%,
+  100% {
+    transform: translateX(300%) skewX(-18deg);
+  }
+}
+/* border gradient whose bright arc points toward the cursor (--pang) */
+@property --pang {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+.pbc-chip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 1.5px;
+  pointer-events: none;
+  z-index: 1;
+  background: conic-gradient(
+    from var(--pang, 0deg),
+    #fff 0deg,
+    #5ece71 10deg,
+    rgba(94, 206, 113, 0.4) 26deg,
+    transparent 60deg,
+    transparent 300deg,
+    rgba(94, 206, 113, 0.4) 334deg,
+    #5ece71 350deg,
+    #fff 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: var(--pglow, 0.6);
+  transition: opacity 0.25s ease;
+}
+.pbc-chip:hover::before {
+  opacity: 1;
+}
+.pbc-lbl {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+.pbc-logos {
+  display: flex;
+  gap: 38px;
+  align-items: center;
+  justify-content: center;
+}
+.pbc-chia {
+  height: 30px;
+  opacity: 1;
+  filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(94, 206, 113, 0.55));
+  transition: 0.25s ease;
+}
+.pbc-chip:hover .pbc-chia {
+  filter: brightness(0) invert(1) drop-shadow(0 0 12px rgba(94, 206, 113, 0.8));
+}
+@media (prefers-reduced-motion: reduce) {
+  .pbc-sheen {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -20,6 +20,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: cxch-core
+      - name: Install clang (blst needs it for the wasm build)
+        run: sudo apt-get update && sudo apt-get install -y clang
       - name: Run simulator round-trip tests
         run: cargo test --release
       - name: Install wasm-pack

@@ -27,6 +27,7 @@ import {
 import SignClient from "@walletconnect/sign-client";
 import type { SessionTypes } from "@walletconnect/types";
 import toast from "react-hot-toast";
+import { clearPublicKeysCache } from "./sage";
 
 const PROJECT_ID =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ??
@@ -41,6 +42,9 @@ export const CHAIN_ID = "chia:mainnet";
 // at request time even if the wallet supports it.
 const METHODS = [
   "chia_getAddress",
+  // Owner fee-address updates: Sage signs the fee-config hash with the
+  // owner wallet key (CHIP-0002 envelope, verified by the TAIL).
+  "chia_signMessageByAddress",
   "chip0002_connect",
   "chip0002_chainId",
   "chip0002_getPublicKeys",
@@ -98,7 +102,11 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         // Pin metadata.url to the page's actual origin — WalletConnect warns
         // (and wallet verification can flag the dApp) if these differ.
         url: typeof window !== "undefined" ? window.location.origin : "",
-        icons: ["https://avatars.githubusercontent.com/u/37784886"],
+        icons: [
+          typeof window !== "undefined"
+            ? `${window.location.origin}/icon.svg`
+            : "/icon.svg",
+        ],
       },
     })
       .then((c) => {
@@ -155,6 +163,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.error("Error disconnecting:", e);
     }
+    clearPublicKeysCache();
     setSession(null);
     toast.success("Disconnected");
   }, [client, session]);
@@ -162,11 +171,25 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
   const request = useCallback(
     async <T,>(method: string, params: unknown): Promise<T> => {
       if (!client || !session) throw new Error("Wallet not connected");
-      return client.request<T>({
+      // TIMEOUT GUARD: on mobile the OS suspends a backgrounded Sage, so a
+      // request can hang forever. Surface an actionable error instead.
+      const call = client.request<T>({
         topic: session.topic,
         chainId: CHAIN_ID,
         request: { method, params },
       });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                "Sage did not respond — open the Sage app (keep it running in the background) and try again."
+              )
+            ),
+          60_000
+        )
+      );
+      return Promise.race([call, timeout]);
     },
     [client, session]
   );
