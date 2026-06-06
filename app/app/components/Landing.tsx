@@ -7,6 +7,7 @@
 
 import { ConnectButton } from "./ConnectButton";
 import PoweredByChia from "./PoweredByChia";
+import SageBadge from "./SageBadge";
 
 export function Landing() {
   return (
@@ -205,9 +206,10 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Powered by Chia — cursor-reactive glow chip */}
-      <section>
+      {/* Powered by Chia — cursor-reactive glow chip — + Sage wallet badge */}
+      <section className="flex flex-wrap items-center justify-center gap-4">
         <PoweredByChia />
+        <SageBadge />
       </section>
 
       {/* Closing CTA */}
