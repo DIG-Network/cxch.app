@@ -11,7 +11,6 @@ import { WrapPanel } from "./components/WrapPanel";
 import { MeltPanel } from "./components/MeltPanel";
 import { ProtocolTab } from "./components/ProtocolTab";
 import { Landing } from "./components/Landing";
-import { DecimalsBanner } from "./components/DecimalsBanner";
 import { SpendConfirmProvider } from "./components/SpendConfirm";
 
 type Tab = "app" | "protocol";
@@ -90,7 +89,6 @@ function Content() {
       ) : session ? (
         <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
           <AssetId />
-          <DecimalsBanner />
           <Balances refreshKey={refreshKey} />
           <WrapPanel onDone={bump} />
           <MeltPanel onDone={bump} />
