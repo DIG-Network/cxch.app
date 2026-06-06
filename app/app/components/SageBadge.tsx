@@ -14,6 +14,7 @@ export default function SageBadge() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Download Sage Wallet"
+      title="Download Sage Wallet"
       className="group inline-flex flex-col items-center gap-2.5 rounded-[18px] border border-[rgba(94,206,113,0.28)] bg-[rgba(8,22,12,0.5)] px-7 py-3.5 no-underline shadow-[0_12px_40px_rgba(0,0,0,0.4)] backdrop-blur transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-[3px] hover:scale-[1.04] hover:border-[rgba(94,206,113,0.7)] hover:shadow-[0_14px_40px_rgba(0,0,0,0.4),0_0_28px_rgba(94,206,113,0.45)]"
     >
       <span className="text-xs uppercase tracking-[0.2em] text-gray-400">Best with</span>
@@ -22,13 +23,12 @@ export default function SageBadge() {
         <img
           src="/sage-logo.png"
           alt="Sage"
-          className="h-8 w-8 rounded-lg drop-shadow-[0_0_10px_rgba(94,206,113,0.4)] transition group-hover:drop-shadow-[0_0_14px_rgba(94,206,113,0.75)]"
+          className="h-[30px] w-[30px] rounded-lg drop-shadow-[0_0_10px_rgba(94,206,113,0.4)] transition group-hover:drop-shadow-[0_0_14px_rgba(94,206,113,0.75)]"
         />
-        <span className="text-[26px] font-bold leading-none text-[var(--foreground)]">
+        <span className="text-[22px] font-bold leading-none text-[var(--foreground)]">
           Sage Wallet
         </span>
       </span>
-      <span className="text-xs font-medium text-[var(--accent)]">Download the wallet ↗</span>
     </a>
   );
 }
