@@ -19,6 +19,28 @@ export function mojosToXch(mojos: bigint): string {
   return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
+/** CAT2 tokens carry 3 decimals, so one displayed token = 1,000 mojos. */
+export const MOJOS_PER_CAT = 1_000n;
+
+/** Groups an integer string with thousands separators. */
+function groupThousands(value: string): string {
+  return value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** Formats mojos as a cMojo (CAT) token count — the number of tokens a CAT
+ * wallet like Sage shows: 1 token = 1,000 mojos, 3 decimals, trailing zeros
+ * trimmed, whole part grouped. */
+export function mojosToCat(mojos: bigint): string {
+  const whole = groupThousands((mojos / MOJOS_PER_CAT).toString());
+  const fraction = (mojos % MOJOS_PER_CAT).toString().padStart(3, "0").replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole;
+}
+
+/** Formats a raw mojo count with thousands separators. */
+export function formatMojos(mojos: bigint): string {
+  return groupThousands(mojos.toString());
+}
+
 /** Ensures a hex string has a leading 0x. */
 export function with0x(hex: string): string {
   return hex.startsWith("0x") ? hex : `0x${hex}`;
