@@ -3,7 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
-import { build_melt_spends, cxch_asset_id, puzzle_hash_to_address } from "../lib/wasm";
+import { melt as buildMelt, cxch_asset_id, puzzle_hash_to_address } from "../lib/wasm";
 import { mojosToXch, xchToMojos } from "../lib/format";
 import {
   buildCatKeyResolver,
@@ -94,7 +94,7 @@ export function MeltPanel({ onDone }: { onDone: () => void }) {
         return { coin: { parent_coin_info, puzzle_hash, amount: amt }, synthetic_key };
       });
 
-      const built = build_melt_spends({
+      const built = buildMelt({
         cxch_coins,
         anchor_coins,
         recipient_puzzle_hash: recipientPuzzleHash,

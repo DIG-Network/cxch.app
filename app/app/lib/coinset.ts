@@ -54,6 +54,61 @@ export async function getCoinRecord(coinId: string): Promise<CoinRecord | null> 
   return data.coin_record ?? null;
 }
 
+/** All coin records at a puzzle hash (optionally including spent ones). */
+export async function getCoinRecordsByPuzzleHash(
+  puzzleHash: string,
+  includeSpentCoins: boolean
+): Promise<CoinRecord[]> {
+  const response = await fetch(`${API}/get_coin_records_by_puzzle_hash`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      puzzle_hash: strip0x(puzzleHash),
+      include_spent_coins: includeSpentCoins,
+    }),
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { coin_records?: CoinRecord[] };
+  return data.coin_records ?? [];
+}
+
+/** Coin records for MANY puzzle hashes in one call (unspent only when
+ * `includeSpentCoins` is false). */
+export async function getCoinRecordsByPuzzleHashes(
+  puzzleHashes: string[],
+  includeSpentCoins: boolean
+): Promise<CoinRecord[]> {
+  if (puzzleHashes.length === 0) return [];
+  const response = await fetch(`${API}/get_coin_records_by_puzzle_hashes`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      puzzle_hashes: puzzleHashes.map(strip0x),
+      include_spent_coins: includeSpentCoins,
+    }),
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { coin_records?: CoinRecord[] };
+  return data.coin_records ?? [];
+}
+
+/** The puzzle reveal + solution that spent a coin at `height`. */
+export async function getPuzzleAndSolution(
+  coinId: string,
+  height: number
+): Promise<{ puzzle_reveal: string; solution: string } | null> {
+  const response = await fetch(`${API}/get_puzzle_and_solution`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ coin_id: strip0x(coinId), height }),
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as {
+    coin_solution?: { puzzle_reveal: string; solution: string };
+  };
+  return data.coin_solution ?? null;
+}
+
 /** Current chain peak height. */
 export async function getPeakHeight(): Promise<number> {
   const response = await fetch(`${API}/get_blockchain_state`, {

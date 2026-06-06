@@ -14,8 +14,8 @@ import init, {
   issuer_public_key,
   address_to_puzzle_hash,
   puzzle_hash_to_address,
-  build_wrap_spends,
-  build_melt_spends,
+  wrap,
+  melt,
   aggregate_signatures,
 } from "@wasm";
 
@@ -39,7 +39,7 @@ export {
   issuer_public_key,
   address_to_puzzle_hash,
   puzzle_hash_to_address,
-  build_wrap_spends,
-  build_melt_spends,
+  wrap,
+  melt,
   aggregate_signatures,
 };

@@ -207,6 +207,10 @@ export function SpendConfirmProvider({ children }: { children: React.ReactNode }
                   Preparing your spend — fetching wallet keys and coins, then
                   assembling the bundle.
                 </p>
+                <p className="text-xs text-gray-500">
+                  On mobile? Sage must be awake to answer — if a step hangs,
+                  switch to the Sage app briefly and come back.
+                </p>
                 <ul className="space-y-1.5">
                   {steps.map((s, i) => (
                     <li key={i} className="flex items-center gap-2.5 text-sm">

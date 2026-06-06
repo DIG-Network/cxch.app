@@ -17,3 +17,6 @@ yarn-error.log*
 
 # OS
 .DS_Store
+
+# Claude Code session artifacts
+.claude/

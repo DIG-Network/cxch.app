@@ -28,11 +28,29 @@ export async function getReceivePuzzleHash(request: RequestFn): Promise<string> 
   return address_to_puzzle_hash(address);
 }
 
-/** Fetches the wallet's public keys via CHIP-0002. Sage returns synthetic keys
- * that can be used directly to construct the standard puzzle. */
-export async function getPublicKeys(request: RequestFn): Promise<string[]> {
-  const response = await request("chip0002_getPublicKeys", { limit: 500, offset: 0 });
-  return extractPublicKeys(response);
+// Public keys are stable for a wallet session, and every wallet round-trip
+// is a liability on mobile (a backgrounded Sage can't answer). Fetch ONCE
+// per page load and share the in-flight promise across all callers.
+let publicKeysCache: Promise<string[]> | null = null;
+
+/** Clears the cached public keys (call on disconnect). */
+export function clearPublicKeysCache(): void {
+  publicKeysCache = null;
+}
+
+/** Fetches the wallet's public keys via CHIP-0002 (cached per session).
+ * Sage returns synthetic keys usable directly in the standard puzzle. */
+export function getPublicKeys(request: RequestFn): Promise<string[]> {
+  if (!publicKeysCache) {
+    publicKeysCache = request("chip0002_getPublicKeys", { limit: 500, offset: 0 })
+      .then(extractPublicKeys)
+      .catch((e) => {
+        // Don't cache failures.
+        publicKeysCache = null;
+        throw e;
+      });
+  }
+  return publicKeysCache;
 }
 
 /** Fetches ALL spendable coins for an asset (XCH when assetId is null),

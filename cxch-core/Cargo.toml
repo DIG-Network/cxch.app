@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Spend-bundle builder for cXCH, a 1:1 wrapped-XCH CAT2 token on Chia"
 license = "MIT"
-repository = "https://github.com/michaeltaylor3d/wxch_dapp"
+repository = "https://github.com/DIG-Network/cXCH_DAPP"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -1,0 +1,17 @@
+{
+  "name": "cXCH — Wrapped XCH on Chia",
+  "short_name": "cXCH",
+  "description": "Wrap XCH into a 1:1 reserve-backed CAT2 token, and melt it back anytime.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f17",
+  "theme_color": "#0b0f17",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

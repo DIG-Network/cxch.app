@@ -3,7 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
-import { build_wrap_spends, puzzle_hash_to_address } from "../lib/wasm";
+import { wrap as buildWrap, puzzle_hash_to_address } from "../lib/wasm";
 import { mojosToXch, xchToMojos } from "../lib/format";
 import {
   buildKeyResolver,
@@ -63,7 +63,7 @@ export function WrapPanel({ onDone }: { onDone: () => void }) {
         return { coin: { parent_coin_info, puzzle_hash, amount: amt }, synthetic_key };
       });
 
-      const built = build_wrap_spends({
+      const built = buildWrap({
         xch_coins,
         recipient_puzzle_hash: recipientPuzzleHash,
         change_puzzle_hash: recipientPuzzleHash,

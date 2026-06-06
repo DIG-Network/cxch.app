@@ -1,9 +1,22 @@
 import type { NextConfig } from "next";
 
-// This configuration mirrors the working WASM + WalletConnect setup from
-// Yakuhito/streaming-ui. Deviating from it tends to cause prerender errors
-// ("Error occurred prerendering page") and runtime WebAssembly LinkErrors.
+// CRITICAL: this app runs as a pure client-side SPA via Next.js static
+// export (`output: "export"`). There is no SSR, no API routes, no edge
+// runtime — `next build` emits an `out/` directory of static HTML/JS/wasm
+// that any static webhost or CDN can serve (mirrors the shielded-wallet
+// reference setup).
+//
+// WHY STATIC EXPORT:
+//   * WalletConnect's `SignClient` opens an IndexedDB store at construction
+//     time; IndexedDB doesn't exist in Node, so any SSR pass would crash.
+//   * The cxch-core wasm bundle is browser-only by nature.
+//   * Sage Wallet integration is inherently client-side.
 const nextConfig: NextConfig = {
+  output: "export",
+  trailingSlash: true,
+  // Static hosts can't run the Next image optimizer.
+  images: { unoptimized: true },
+
   webpack(config, { isServer, dev }) {
     // Optional dependencies of @walletconnect's pino logger and key-value store.
     // Pulling them into the bundle breaks the build, so we externalize them.

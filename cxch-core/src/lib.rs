@@ -22,13 +22,17 @@ pub use error::{Error, Result};
 use chia_bls::{aggregate, Signature};
 use chia_puzzle_types::DeriveSynthetic;
 use chia_sdk_utils::Address;
+#[cfg(target_arch = "wasm32")]
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::dto::{parse_bytes32, parse_pk, MeltRequestDto, UnsignedSpendBundleOut, WrapRequestDto};
+use crate::dto::{parse_bytes32, parse_pk};
+#[cfg(target_arch = "wasm32")]
+use crate::dto::{MeltRequestDto, UnsignedSpendBundleOut, WrapRequestDto};
 
 /// Serializes a value into a JSON-compatible `JsValue` (numbers stay as JS
 /// numbers rather than `BigInt`, so the result survives `JSON.stringify`).
+#[cfg(target_arch = "wasm32")]
 fn to_js<T: Serialize>(value: &T) -> std::result::Result<JsValue, JsValue> {
     let serializer = serde_wasm_bindgen::Serializer::json_compatible();
     value
@@ -97,9 +101,20 @@ pub fn puzzle_hash_to_address(puzzle_hash: String) -> std::result::Result<String
     Ok(address)
 }
 
-/// Builds the unsigned coin spends for a wrap (mint) operation.
+// ============================================================================
+// Public interface: `wrap` (mint) and `melt` (burn).
+//
+// The 0.1% dev fee is computed INSIDE `wrap::build_wrap` / `melt::build_melt`
+// (see `constants::dev_fee`) — it is never a caller parameter, so it is always
+// included by default, behind both the WASM and the native-crate surfaces.
+// The same two functions are exposed to JS (WASM) and to Rust consumers.
+// ============================================================================
+
+/// WASM: build the unsigned coin spends for a WRAP (mint). Returns
+/// `{ coin_spends, issuer_partial_signature }`. The dev fee is included.
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn build_wrap_spends(request: JsValue) -> std::result::Result<JsValue, JsValue> {
+pub fn wrap(request: JsValue) -> std::result::Result<JsValue, JsValue> {
     let dto: WrapRequestDto = serde_wasm_bindgen::from_value(request)
         .map_err(|e| Error::Serde(e.to_string()))?;
 
@@ -121,9 +136,11 @@ pub fn build_wrap_spends(request: JsValue) -> std::result::Result<JsValue, JsVal
     to_js(&UnsignedSpendBundleOut::from_bundle(&bundle))
 }
 
-/// Builds the unsigned coin spends for a melt (burn) operation.
+/// WASM: build the unsigned coin spends for a MELT (burn). The dev fee is
+/// included.
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn build_melt_spends(request: JsValue) -> std::result::Result<JsValue, JsValue> {
+pub fn melt(request: JsValue) -> std::result::Result<JsValue, JsValue> {
     let dto: MeltRequestDto = serde_wasm_bindgen::from_value(request)
         .map_err(|e| Error::Serde(e.to_string()))?;
 
@@ -149,6 +166,33 @@ pub fn build_melt_spends(request: JsValue) -> std::result::Result<JsValue, JsVal
     let bundle = melt::build_melt(params)?;
     to_js(&UnsignedSpendBundleOut::from_bundle(&bundle))
 }
+
+/// Native Rust API for crate consumers — the same `wrap` / `melt` names as the
+/// WASM interface, with the dev fee baked in. Import and call directly:
+///
+/// ```ignore
+/// use cxch_core::{wrap, melt, WrapParams, MeltParams};
+/// let bundle = wrap(WrapParams { /* coins, recipient, mint_amount, ... */ })?;
+/// ```
+///
+/// (On `wasm32` these names are the `#[wasm_bindgen]` JS exports above instead.)
+#[cfg(not(target_arch = "wasm32"))]
+pub fn wrap(params: WrapParams) -> Result<UnsignedSpendBundle> {
+    wrap::build_wrap(params)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn melt(params: MeltParams) -> Result<UnsignedSpendBundle> {
+    melt::build_melt(params)
+}
+
+// Re-exported types + the underlying builders (stable names usable on both
+// targets; `wrap`/`melt` above are the canonical entry points).
+pub use melt::build_melt;
+pub use melt::MeltParams;
+pub use spend::{CxchCoin, StandardCoin, UnsignedSpendBundle};
+pub use wrap::build_wrap;
+pub use wrap::WrapParams;
 
 /// Aggregates a list of `0x`-prefixed hex BLS signatures into one. Used to
 /// combine the wallet's partial signature with the issuer's partial signature.

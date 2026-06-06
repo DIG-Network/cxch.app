@@ -182,22 +182,62 @@ export function ProtocolTab() {
         </ol>
       </Section>
 
-      <Section title="Reference builder (optional)">
-        <p className="text-sm leading-relaxed text-gray-400">
-          This dApp ships the construction above as a Rust → WASM library
-          (<span className="font-mono">cxch-core</span>): {" "}
-          <span className="font-mono">build_wrap_spends</span> and{" "}
-          <span className="font-mono">build_melt_spends</span> return the unsigned coin
-          spends plus the issuer&apos;s partial signature;{" "}
-          <span className="font-mono">aggregate_signatures</span> combines it with your
-          wallet&apos;s partial signature. Any implementation that follows the steps above
-          produces byte-identical on-chain behavior — the WASM module is a convenience, not
-          a dependency of the protocol.
+      <Section title="Use it in your own dApp">
+        <p className="mb-3 text-sm leading-relaxed text-gray-400">
+          The builder ships as both an npm (WASM) package and a Rust crate, with the
+          same two-function interface — <span className="font-mono">wrap</span> and{" "}
+          <span className="font-mono">melt</span> — and the <strong>0.1% dev fee baked in
+          by default</strong> (it is computed inside the library, never a caller
+          parameter). Drop it into any Chia dApp:
         </p>
+
+        <div className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wide text-gray-400">
+              TypeScript / WASM
+            </span>
+            <a
+              href="https://www.npmjs.com/package/@dig-network/cxch-core"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-gray-500 underline-offset-2 hover:text-[var(--accent)] hover:underline"
+            >
+              @dig-network/cxch-core ↗
+            </a>
+          </div>
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--background)] p-3 font-mono text-xs leading-relaxed">{`npm install @dig-network/cxch-core
+
+import init, { wrap, melt } from "@dig-network/cxch-core";
+await init();
+const bundle = wrap({ xch_coins, recipient_puzzle_hash,
+  change_puzzle_hash, mint_amount_mojos, fee_mojos });
+// melt(...) is symmetric. Dev fee is already included.`}</pre>
+        </div>
+
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs uppercase tracking-wide text-gray-400">Rust</span>
+            <a
+              href="https://crates.io/crates/cxch-core"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-gray-500 underline-offset-2 hover:text-[var(--accent)] hover:underline"
+            >
+              crates.io/crates/cxch-core ↗
+            </a>
+          </div>
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--background)] p-3 font-mono text-xs leading-relaxed">{`cargo add cxch-core
+
+use cxch_core::{wrap, melt, WrapParams};
+let bundle = wrap(WrapParams { /* coins, recipient, mint_amount, … */ })?;
+// melt(MeltParams { … })? is symmetric. Dev fee is baked in.`}</pre>
+        </div>
+
         <p className="mt-3 text-sm leading-relaxed text-gray-400">
-          Note: bundles built by <em>this dApp&apos;s</em> builder include a 0.1% dev fee
-          output paid in XCH. That is a convention of this builder only — it is NOT a
-          protocol requirement, and bundles constructed elsewhere do not need it.
+          Both call the identical builder, so they produce byte-identical on-chain
+          behavior — and both always include the 0.1% dev fee output. Any implementation
+          that follows the bundle shapes above is valid; the library is a convenience, not
+          a protocol dependency.
         </p>
       </Section>
     </div>
