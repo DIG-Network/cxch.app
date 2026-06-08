@@ -83,9 +83,25 @@ pub struct CoinSpendOut {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct LineageProofOut {
+    pub parent_parent_coin_info: String,
+    pub parent_inner_puzzle_hash: String,
+    pub parent_amount: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CatOut {
+    pub coin: CoinOut,
+    pub lineage_proof: Option<LineageProofOut>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct UnsignedSpendBundleOut {
     pub coin_spends: Vec<CoinSpendOut>,
     pub issuer_partial_signature: String,
+    /// CAT coins created by this bundle (minted cMojo for a wrap; change for a
+    /// melt), so a caller can spend them in the same bundle without a block wait.
+    pub minted_coins: Vec<CatOut>,
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +159,23 @@ impl UnsignedSpendBundleOut {
         Self {
             coin_spends: bundle.coin_spends.iter().map(coin_spend_out).collect(),
             issuer_partial_signature: to_hex(&bundle.issuer_signature.to_bytes()),
+            minted_coins: bundle.cat_outputs.iter().map(cat_out).collect(),
         }
+    }
+}
+
+fn cat_out(cat: &Cat) -> CatOut {
+    CatOut {
+        coin: CoinOut {
+            parent_coin_info: to_hex(&cat.coin.parent_coin_info.to_bytes()),
+            puzzle_hash: to_hex(&cat.coin.puzzle_hash.to_bytes()),
+            amount: cat.coin.amount,
+        },
+        lineage_proof: cat.lineage_proof.as_ref().map(|lp| LineageProofOut {
+            parent_parent_coin_info: to_hex(&lp.parent_parent_coin_info.to_bytes()),
+            parent_inner_puzzle_hash: to_hex(&lp.parent_inner_puzzle_hash.to_bytes()),
+            parent_amount: lp.parent_amount,
+        }),
     }
 }
 
