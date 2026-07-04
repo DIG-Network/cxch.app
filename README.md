@@ -80,14 +80,14 @@ same two-function interface — **`wrap`** and **`melt`** — and the **0.1% dev
 baked in by default** (it is computed inside the library, never a caller
 parameter, so it is always included behind both surfaces).
 
-### npm (TypeScript / WASM) — [`@dig-network/cmojo-core`](https://www.npmjs.com/package/@dig-network/cmojo-core)
+### npm (TypeScript / WASM) — [`@dignetwork/cmojo-core`](https://www.npmjs.com/package/@dignetwork/cmojo-core)
 
 ```bash
-npm install @dig-network/cmojo-core
+npm install @dignetwork/cmojo-core
 ```
 
 ```ts
-import init, { wrap, melt } from "@dig-network/cmojo-core";
+import init, { wrap, melt } from "@dignetwork/cmojo-core";
 
 await init();
 const bundle = wrap({
@@ -234,7 +234,7 @@ npm run build        # → app/out/
 Tagging a release as `v*` triggers `.github/workflows/release.yml`, which builds
 and publishes both packages from the same source:
 
-- **npm** — stamps the WASM package as `@dig-network/cmojo-core@<tag>` and runs
+- **npm** — stamps the WASM package as `@dignetwork/cmojo-core@<tag>` and runs
   `npm publish` (needs the `NPM_TOKEN` repo secret).
 - **crates.io** — stamps `cmojo-core`'s version and runs `cargo publish` (needs
   the `CARGO_REGISTRY_TOKEN` repo secret).

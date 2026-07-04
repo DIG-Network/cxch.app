@@ -197,17 +197,17 @@ export function ProtocolTab() {
               TypeScript / WASM
             </span>
             <a
-              href="https://www.npmjs.com/package/@dig-network/cmojo-core"
+              href="https://www.npmjs.com/package/@dignetwork/cmojo-core"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-gray-500 underline-offset-2 hover:text-[var(--accent)] hover:underline"
             >
-              @dig-network/cmojo-core ↗
+              @dignetwork/cmojo-core ↗
             </a>
           </div>
-          <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--background)] p-3 font-mono text-xs leading-relaxed">{`npm install @dig-network/cmojo-core
+          <pre className="mt-2 overflow-x-auto rounded-lg bg-[var(--background)] p-3 font-mono text-xs leading-relaxed">{`npm install @dignetwork/cmojo-core
 
-import init, { wrap, melt } from "@dig-network/cmojo-core";
+import init, { wrap, melt } from "@dignetwork/cmojo-core";
 await init();
 const bundle = wrap({ xch_coins, recipient_puzzle_hash,
   change_puzzle_hash, mint_amount_mojos, fee_mojos });
