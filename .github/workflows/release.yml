@@ -2,10 +2,10 @@ name: Release WASM to npm
 
 # Builds the cmojo-core Rust → WASM package and publishes it to npm whenever a
 # version tag is pushed (e.g. `v0.2.0`). The published package version is taken
-# from the tag, and the package is scoped to the DIG-Network org.
+# from the tag, and the package is scoped to the ecosystem's @dignetwork npm org.
 #
 # Requires the repo/org secret NPM_TOKEN (an npmjs.com automation token with
-# publish rights to the @dig-network scope).
+# publish rights to the @dignetwork scope).
 
 on:
   push:
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   publish-wasm:
-    name: build + publish @dig-network/cmojo-core
+    name: build + publish @dignetwork/cmojo-core
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
           node -e '
             const fs = require("fs");
             const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
-            p.name = "@dig-network/cmojo-core";
+            p.name = "@dignetwork/cmojo-core";
             p.version = process.env.VERSION;
             p.repository = { type: "git", url: "git+https://github.com/DIG-Network/cXCH_DAPP.git" };
             p.publishConfig = { access: "public" };
