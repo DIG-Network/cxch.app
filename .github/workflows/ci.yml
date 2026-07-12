@@ -17,13 +17,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+          components: llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: cmojo-core
       - name: Install clang (blst needs it for the wasm build)
         run: sudo apt-get update && sudo apt-get install -y clang
-      - name: Run simulator round-trip tests
-        run: cargo test --release
+      - name: Install cargo-nextest + cargo-llvm-cov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest,cargo-llvm-cov
+      - name: Run simulator round-trip tests (nextest, flaky-retry, coverage-gated)
+        run: cargo llvm-cov --release nextest --fail-under-lines 80 -- --retries 2
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked || cargo install wasm-pack
       - name: Build WASM package
