@@ -28,7 +28,7 @@ jobs:
         with:
           tool: cargo-nextest,cargo-llvm-cov
       - name: Run simulator round-trip tests (nextest, flaky-retry, coverage-gated)
-        run: cargo llvm-cov --release nextest --fail-under-lines 80 -- --retries 2
+        run: cargo llvm-cov --release nextest --fail-under-lines 80 --retries 2
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked || cargo install wasm-pack
       - name: Build WASM package
