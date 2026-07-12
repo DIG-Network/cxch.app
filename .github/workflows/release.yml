@@ -41,10 +41,9 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked || cargo install wasm-pack
 
-      - name: Run simulator tests (gate the release)
-        working-directory: cmojo-core
-        run: cargo test --release
-
+      # Tests already gated this tree on the merged PR (CI's cargo-llvm-cov nextest
+      # run, coverage >=80%) — release builds/packages/publishes only, it does not
+      # re-run the full suite (avoids a slow/redundant release-blocker, #488/#489).
       - name: Build WASM package
         working-directory: cmojo-core
         run: wasm-pack build --release --target web --out-dir ../app/wasm-pkg
