@@ -107,3 +107,24 @@ const fn nibble(c: u8) -> u8 {
         _ => panic!("invalid hex nibble"),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Pins the dev-fee formula to 0.1% (10 bps), floored — the single source of
+    /// truth the WASM `dev_fee` export and the frontend both consume. Any drift
+    /// here would desync the UI fee preview from the amount the builder spends.
+    #[test]
+    fn dev_fee_is_ten_basis_points_floored() {
+        // Golden vectors shared with the frontend parity test (fees.test.ts):
+        // fee = floor(amount * 10 / 10_000).
+        assert_eq!(dev_fee(0), 0);
+        assert_eq!(dev_fee(999), 0); // under 1000 mojos rounds to zero
+        assert_eq!(dev_fee(1_000), 1);
+        assert_eq!(dev_fee(9_999), 9);
+        assert_eq!(dev_fee(10_000), 10);
+        assert_eq!(dev_fee(1_000_000_000_000), 1_000_000_000); // 1 XCH → 0.001 XCH
+        assert_eq!(dev_fee(u64::MAX), (u64::MAX as u128 * 10 / 10_000) as u64);
+    }
+}

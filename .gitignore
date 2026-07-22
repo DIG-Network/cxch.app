@@ -2,9 +2,14 @@
 target/
 **/*.rs.bk
 
+# Generated wasm-pack output (rebuilt by `npm run build:wasm` / CI)
+app/wasm-pkg/
+cmojo-core/pkg/
+
 # Node / Next.js
 node_modules/
 .next/
+coverage/
 out/
 .env
 .env.local

@@ -1,6 +1,6 @@
 {
   "name": "cmojo-dapp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "cMojo — a 1:1 wrapped-XCH CAT2 dApp on Chia (Sage + WalletConnect v2)",
   "scripts": {
@@ -8,6 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "build:wasm": "cd ../cmojo-core && wasm-pack build --release --target web --out-dir ../app/wasm-pkg"
   },
   "dependencies": {
@@ -26,9 +29,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^3.0.5",
     "eslint": "^9",
     "eslint-config-next": "15.2.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.0.5"
   }
 }

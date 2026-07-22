@@ -2,22 +2,19 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { cmojo_asset_id, issuer_public_key } from "../lib/wasm";
+import {
+  cmojo_asset_id,
+  issuer_public_key,
+  issuer_secret_key,
+  mainnet_genesis_challenge,
+} from "../lib/wasm";
 
 // The Protocol tab — the integration spec for the canonical cMojo asset id.
 // It tells any app exactly which asset id to use and how to construct spend
 // bundles that mint (wrap) and melt (burn) cMojo. It deliberately does NOT
-// discuss deploying a new CAT: there is exactly one cMojo.
-
-/** The intentionally published issuer secret key (see cmojo-core/constants.rs).
- * Publishing it is what makes mint and melt permissionless: the
- * `everything_with_signature` TAIL only authorises the *supply change*, while
- * Chia consensus independently enforces the 1:1 mojo backing. */
-const ISSUER_SECRET_KEY =
-  "0x0000000000000000000000000000000000000000000000000000000063786368";
-
-const MAINNET_GENESIS_CHALLENGE =
-  "0xccd5bb71183532bff220ba46c268991a3ff07eb358e8255a65c30a2dce0e5fbb";
+// discuss deploying a new CAT: there is exactly one cMojo. Every canonical
+// value below is read straight from the cmojo-core WASM module — never a
+// hand-copied literal that could drift from the crate.
 
 function CopyableValue({ label, value, note }: { label: string; value: string; note?: string }) {
   const [copied, setCopied] = useState(false);
@@ -80,6 +77,8 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 export function ProtocolTab() {
   const assetId = cmojo_asset_id();
   const issuerPk = issuer_public_key();
+  const issuerSk = issuer_secret_key();
+  const genesisChallenge = mainnet_genesis_challenge();
 
   return (
     <div className="flex flex-col gap-4">
@@ -106,12 +105,12 @@ export function ProtocolTab() {
           />
           <CopyableValue
             label="Issuer secret key — published on purpose"
-            value={ISSUER_SECRET_KEY}
+            value={issuerSk}
             note="Anyone can sign supply changes with this key; that is what makes mint and melt permissionless. The signature only authorises the supply delta — the 1:1 XCH backing is enforced independently by Chia consensus (every spend bundle must conserve mojos), so publishing the key does not weaken the peg."
           />
           <CopyableValue
             label="AGG_SIG additional data (mainnet genesis challenge)"
-            value={MAINNET_GENESIS_CHALLENGE}
+            value={genesisChallenge}
             note="The issuer signature is an AGG_SIG_ME-style BLS signature: sign(issuer_sk, message || coin_id || genesis_challenge) for the coin spend that runs the TAIL."
           />
         </div>
