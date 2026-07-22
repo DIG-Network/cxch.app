@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useSage } from "../lib/walletconnect";
 import { wrap as buildWrap, puzzle_hash_to_address } from "../lib/wasm";
 import { mojosToXch, xchToMojos } from "../lib/format";
+import { DEFAULT_FEE, devFee } from "../lib/fees";
 import {
   buildKeyResolver,
   extractCoinName,
@@ -17,13 +18,6 @@ import {
 } from "../lib/sage";
 import { type BuiltBundle } from "../lib/flow";
 import { useSpendConfirm, type PreparedSpend } from "./SpendConfirm";
-
-const DEFAULT_FEE = BigInt(process.env.NEXT_PUBLIC_DEFAULT_FEE_MOJOS ?? "100000000");
-
-/** 0.1% dev fee (10 basis points, floored) — must mirror cmojo-core. */
-function devFee(amount: bigint): bigint {
-  return (amount * 10n) / 10_000n;
-}
 
 export function WrapPanel({ onDone }: { onDone: () => void }) {
   const { session, request } = useSage();

@@ -6,16 +6,7 @@ import { useSage } from "../lib/walletconnect";
 import { cmojo_asset_id } from "../lib/wasm";
 import { formatMojos, mojosToXch } from "../lib/format";
 import { getAssetCoins, sumCoinAmounts } from "../lib/sage";
-
-function Spinner() {
-  return (
-    <span
-      role="status"
-      aria-label="Loading balance"
-      className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)] align-middle"
-    />
-  );
-}
+import { Spinner } from "./Spinner";
 
 export function Balances({ refreshKey }: { refreshKey: number }) {
   const { session, request } = useSage();
@@ -57,7 +48,7 @@ export function Balances({ refreshKey }: { refreshKey: number }) {
       <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4">
         <div className="text-xs uppercase text-gray-400">XCH</div>
         <div className="mt-1 text-2xl font-semibold">
-          {xch === null ? <Spinner /> : mojosToXch(xch)}
+          {xch === null ? <Spinner size={24} variant="track" inline label="Loading balance" /> : mojosToXch(xch)}
         </div>
         <div className="mt-0.5 text-xs text-gray-500">
           {xch === null ? "" : `${formatMojos(xch)} mojos`}
@@ -67,7 +58,7 @@ export function Balances({ refreshKey }: { refreshKey: number }) {
         <div className="text-xs uppercase text-gray-400">cMojo</div>
         {/* Shown as its XCH value (1:1 by mojo), labelled XCH. */}
         <div className="mt-1 text-2xl font-semibold">
-          {cmojo === null ? <Spinner /> : `${mojosToXch(cmojo)} XCH`}
+          {cmojo === null ? <Spinner size={24} variant="track" inline label="Loading balance" /> : `${mojosToXch(cmojo)} XCH`}
         </div>
         {/* The same holding in raw mojos. */}
         <div className="mt-0.5 text-xs text-gray-500">

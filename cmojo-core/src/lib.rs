@@ -52,6 +52,30 @@ pub fn issuer_public_key() -> String {
     format!("0x{}", hex::encode(constants::issuer_pk().to_bytes()))
 }
 
+/// The cMojo issuer secret key, as a `0x`-prefixed hex string. Published on
+/// purpose — see [`constants::ISSUER_SK_BYTES`]. Exposed so the Protocol tab
+/// renders it from the single canonical source rather than a hand-copied literal.
+#[wasm_bindgen]
+pub fn issuer_secret_key() -> String {
+    format!("0x{}", hex::encode(constants::ISSUER_SK_BYTES))
+}
+
+/// The Chia mainnet genesis challenge (the `AGG_SIG_ME` additional data), as a
+/// `0x`-prefixed hex string.
+#[wasm_bindgen]
+pub fn mainnet_genesis_challenge() -> String {
+    format!("0x{}", hex::encode(constants::MAINNET_GENESIS_CHALLENGE))
+}
+
+/// The 0.1% dev fee in mojos for a wrap/melt of `amount` mojos (10 basis
+/// points, floored). A pure pass-through to the canonical [`constants::dev_fee`]
+/// so the frontend's fee preview and coin selection can never desync from the
+/// fee the builder actually spends. Amounts under 1000 mojos yield zero.
+#[wasm_bindgen]
+pub fn dev_fee(amount: u64) -> u64 {
+    constants::dev_fee(amount)
+}
+
 /// The CAT2 outer puzzle hash for a cMojo coin with the given inner puzzle hash.
 #[wasm_bindgen]
 pub fn cmojo_outer_puzzle_hash(inner_puzzle_hash: String) -> std::result::Result<String, JsValue> {

@@ -25,6 +25,7 @@ import {
 import { useSage } from "../lib/walletconnect";
 import { signAndBroadcast, type BuiltBundle } from "../lib/flow";
 import { waitForConfirmation, type ConfirmProgress } from "../lib/coinset";
+import { Spinner } from "./Spinner";
 
 export interface SpendSummaryLine {
   label: string;
@@ -69,16 +70,6 @@ export function useSpendConfirm(): SpendCtx {
 interface StepState {
   label: string;
   done: boolean;
-}
-
-function Spinner() {
-  return (
-    <div
-      className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent"
-      role="status"
-      aria-label="Working"
-    />
-  );
 }
 
 export function SpendConfirmProvider({ children }: { children: React.ReactNode }) {
@@ -217,7 +208,7 @@ export function SpendConfirmProvider({ children }: { children: React.ReactNode }
                       {s.done ? (
                         <span className="text-[var(--accent)]">✓</span>
                       ) : (
-                        <Spinner />
+                        <Spinner size={16} label="Working" />
                       )}
                       <span className={s.done ? "text-gray-400" : "font-medium"}>
                         {s.label}
@@ -231,7 +222,7 @@ export function SpendConfirmProvider({ children }: { children: React.ReactNode }
                   ))}
                   {steps.length === 0 && (
                     <li className="flex items-center gap-2.5 text-sm">
-                      <Spinner />
+                      <Spinner size={16} label="Working" />
                       <span className="font-medium">Starting…</span>
                     </li>
                   )}
@@ -288,7 +279,7 @@ export function SpendConfirmProvider({ children }: { children: React.ReactNode }
 
             {phase === "signing" && (
               <div className="flex items-center gap-3 text-sm text-gray-400">
-                <Spinner />
+                <Spinner size={16} label="Working" />
                 Sign in Sage, then we broadcast to mainnet…
               </div>
             )}
@@ -296,7 +287,7 @@ export function SpendConfirmProvider({ children }: { children: React.ReactNode }
             {phase === "waiting" && (
               <div className="space-y-2">
                 <div className="flex items-center gap-3 text-sm text-gray-400">
-                  <Spinner />
+                  <Spinner size={16} label="Working" />
                   Waiting for on-chain confirmation…
                 </div>
                 <p className="text-xs text-gray-400">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import Modal from "./Modal";
+import { Spinner } from "./Spinner";
 import { useSage } from "../lib/walletconnect";
 
 /**
@@ -86,11 +87,7 @@ export function ConnectButton() {
             </>
           ) : (
             <div className="flex items-center justify-center p-4">
-              <div
-                className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent"
-                role="status"
-                aria-label="Loading"
-              />
+              <Spinner size={32} />
             </div>
           )}
         </div>

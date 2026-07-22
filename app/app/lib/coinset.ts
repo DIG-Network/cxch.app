@@ -3,6 +3,7 @@
 // Minimal client for the coinset.org full-node REST API used to broadcast spend
 // bundles and poll for confirmation (mirrors the shielded-wallet reference).
 import type { CoinSpendJson } from "./sage";
+import { strip0x } from "./format";
 
 const API = process.env.NEXT_PUBLIC_COINSET_API ?? "https://api.coinset.org";
 
@@ -36,10 +37,6 @@ export interface CoinRecord {
   confirmed_block_index: number;
   spent_block_index: number;
   spent: boolean;
-}
-
-function strip0x(hex: string): string {
-  return hex.startsWith("0x") ? hex.slice(2) : hex;
 }
 
 /** Looks up a coin record by id, returning null if it is not yet known. */
