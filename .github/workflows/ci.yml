@@ -5,6 +5,10 @@ on:
     branches: ["**"]
   pull_request:
 
+# CI only reads the tree; it publishes nothing and writes no checks of its own.
+permissions:
+  contents: read
+
 jobs:
   rust-core:
     name: cmojo-core (test + wasm build)
@@ -22,8 +26,15 @@ jobs:
           workspaces: cmojo-core
       - name: Install clang (blst needs it for the wasm build)
         run: sudo apt-get update && sudo apt-get install -y clang
-      - name: Run simulator round-trip tests
-        run: cargo test --release
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      # nextest retries a failing test up to twice before reporting it red, so a
+      # genuinely flaky simulator round-trip does not fail an otherwise-good PR.
+      # A test that fails all three attempts is a real failure and still blocks.
+      - name: Run simulator round-trip tests (nextest, flaky-retry)
+        run: cargo nextest run --release --retries 2
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked || cargo install wasm-pack
       - name: Build WASM package

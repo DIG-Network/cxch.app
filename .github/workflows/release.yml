@@ -41,10 +41,11 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked || cargo install wasm-pack
 
-      - name: Run simulator tests (gate the release)
-        working-directory: cmojo-core
-        run: cargo test --release
-
+      # A tag is only ever cut from a `main` that CI already gated: the CI
+      # workflow runs the simulator suite under nextest (with flaky retries) on
+      # every PR before merge. So the release job builds, packages and publishes
+      # only — re-running the suite here would just be a slow, redundant
+      # release-blocker (#488/#489).
       - name: Build WASM package
         working-directory: cmojo-core
         run: wasm-pack build --release --target web --out-dir ../app/wasm-pkg
