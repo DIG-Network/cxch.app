@@ -1,16 +1,34 @@
 name: Release WASM to npm
 
-# Builds the cmojo-core Rust → WASM package and publishes it to npm whenever a
-# version tag is pushed (e.g. `v0.2.0`). The published package version is taken
-# from the tag, and the package is scoped to the ecosystem's @dignetwork npm org.
+# Builds the cmojo-core Rust → WASM package and publishes it to BOTH registries whenever a
+# version tag is pushed (e.g. `v0.2.0`): `@dignetwork/cmojo-core` on npm, and `cmojo-core` on
+# crates.io. The published version is taken from the tag, never from a file in the tree.
 #
-# Requires the repo/org secret NPM_TOKEN (an npmjs.com automation token with
-# publish rights to the @dignetwork scope).
+# npm auth is **Trusted Publishing (OIDC)** — no NPM_TOKEN. This workflow exchanges its GitHub
+# Actions OIDC token for a short-lived npm publish token, which requires `id-token: write` and
+# npm CLI >= 11.5.1. The npm-side trusted publisher must name org `DIG-Network`, repo
+# `cxch.app`, workflow file `release.yml`.
+#
+# Why not a token (#2786): the only npm credential the org has is a legacy NPM_TOKEN that npm
+# demands an interactive one-time password for. It fails `EOTP` from CI by construction — no CI
+# run can answer an authenticator prompt — which is exactly how the v0.2.1 npm publish died while
+# the crates.io half of the same run succeeded. The four sibling repos that publish green
+# (dig-sdk, components, create-dig-app, dig-framework-adapters) all use OIDC; this matches them.
+#
+# Both publish jobs are IDEMPOTENT: each asks its registry whether the version is already there
+# and skips instead of failing. That is what makes a re-run of a half-published tag complete the
+# MISSING half rather than erroring on the half that already succeeded — the state v0.2.1 left
+# behind (crate published, npm not) took a hand-repair precisely because a naive re-run could not.
+#
+# `workflow_dispatch` exists so a stuck release can be re-driven without cutting a new tag. It
+# publishes the version the SELECTED TAG names, so it must be dispatched with the tag chosen as
+# the ref; selected against a branch it fails loudly rather than guessing a version.
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -19,26 +37,70 @@ jobs:
   publish-wasm:
     name: build + publish @dignetwork/cmojo-core
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required for npm Trusted Publishing (OIDC).
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Derive version from tag
         id: ver
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ANCHORED at both ends, deliberately. An unanchored pattern validates only a PREFIX, so
+          # a tag like `v1.2.3$(id)` -- which `git check-ref-format` accepts and which anyone with
+          # push access can create without touching this protected file -- would pass, and the
+          # version derived from it is spliced into the shell steps below.
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] || ! printf '%s' "${GITHUB_REF_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'; then
+            echo "::error::This workflow publishes the version named by a v* TAG, but it was selected against '${GITHUB_REF_NAME}' (ref type '${GITHUB_REF_TYPE}'), which names no version. Re-run it with the tag selected as the ref."
+            exit 1
+          fi
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      # Ask npm first, so a re-run of a half-published tag skips the (slow) wasm build entirely
+      # instead of rebuilding it only to fail on an occupied version.
+      - name: Skip if this version is already on npm
+        id: npm_state
+        shell: bash
+        env:
+          # Via `env:`, never `${{ }}` inside `run:`. An Actions expression is substituted as TEXT
+          # before the shell parses the line, so a hostile value would execute; an env var is data.
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -uo pipefail
+          V="$VERSION"
+          if npm view "@dignetwork/cmojo-core@${V}" version >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "@dignetwork/cmojo-core@${V} is already on npm — skipping this job."
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+            echo "@dignetwork/cmojo-core@${V} is not on npm — publishing."
+          fi
 
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.npm_state.outputs.already == 'false'
         with:
           targets: wasm32-unknown-unknown
 
       - uses: Swatinem/rust-cache@v2
+        if: steps.npm_state.outputs.already == 'false'
         with:
           workspaces: cmojo-core
 
       # blst (a chia-bls dependency) needs clang to compile its C to wasm.
       - name: Install clang
+        if: steps.npm_state.outputs.already == 'false'
         run: sudo apt-get update && sudo apt-get install -y clang
 
       - name: Install wasm-pack
+        if: steps.npm_state.outputs.already == 'false'
         run: cargo install wasm-pack --locked || cargo install wasm-pack
 
       # A tag is only ever cut from a `main` that CI already gated: the CI
@@ -47,17 +109,14 @@ jobs:
       # only — re-running the suite here would just be a slow, redundant
       # release-blocker (#488/#489).
       - name: Build WASM package
+        if: steps.npm_state.outputs.already == 'false'
         working-directory: cmojo-core
         run: wasm-pack build --release --target web --out-dir ../app/wasm-pkg
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: "https://registry.npmjs.org"
 
       # Stamp the published package: scoped name, tag version, correct repo,
       # public access. wasm-pack generates the rest of package.json.
       - name: Stamp package.json
+        if: steps.npm_state.outputs.already == 'false'
         working-directory: app/wasm-pkg
         run: |
           node -e '
@@ -65,7 +124,7 @@ jobs:
             const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
             p.name = "@dignetwork/cmojo-core";
             p.version = process.env.VERSION;
-            p.repository = { type: "git", url: "git+https://github.com/DIG-Network/cXCH_DAPP.git" };
+            p.repository = { type: "git", url: "git+https://github.com/DIG-Network/cxch.app.git" };
             p.publishConfig = { access: "public" };
             fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");
             console.log("publishing", p.name + "@" + p.version);
@@ -73,11 +132,17 @@ jobs:
         env:
           VERSION: ${{ steps.ver.outputs.version }}
 
+      # Trusted publishing requires npm CLI >= 11.5.1; Node 22 bundles npm 10.
+      - name: upgrade npm for trusted publishing
+        if: steps.npm_state.outputs.already == 'false'
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - name: Publish to npm
+        if: steps.npm_state.outputs.already == 'false'
         working-directory: app/wasm-pkg
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-crate:
     name: build + publish cmojo-core to crates.io
@@ -87,25 +152,66 @@ jobs:
 
       - name: Derive version from tag
         id: ver
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ANCHORED at both ends, deliberately. An unanchored pattern validates only a PREFIX, so
+          # a tag like `v1.2.3$(id)` -- which `git check-ref-format` accepts and which anyone with
+          # push access can create without touching this protected file -- would pass, and the
+          # version derived from it is spliced into the shell steps below.
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] || ! printf '%s' "${GITHUB_REF_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'; then
+            echo "::error::This workflow publishes the version named by a v* TAG, but it was selected against '${GITHUB_REF_NAME}' (ref type '${GITHUB_REF_TYPE}'), which names no version. Re-run it with the tag selected as the ref."
+            exit 1
+          fi
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # crates.io answers 200 for a published version and 404 otherwise. It rejects any request
+      # that sends no User-Agent, so the header is required, not decorative.
+      - name: Skip if this version is already on crates.io
+        id: crate_state
+        shell: bash
+        env:
+          # See the note on the npm probe: `env:` keeps the tag-derived value as data, not code.
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -uo pipefail
+          V="$VERSION"
+          CODE="$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H 'User-Agent: dig-network-release (https://github.com/DIG-Network/cxch.app)' \
+            "https://crates.io/api/v1/crates/cmojo-core/${V}" || echo 000)"
+          case "$CODE" in
+            200) echo "already=true"  >> "$GITHUB_OUTPUT"; echo "cmojo-core ${V} is already on crates.io — skipping this job." ;;
+            404) echo "already=false" >> "$GITHUB_OUTPUT"; echo "cmojo-core ${V} is not on crates.io — publishing." ;;
+            *)   echo "::error::crates.io returned HTTP ${CODE} when asked about cmojo-core ${V}. Refusing to guess whether the version exists — re-run once crates.io is reachable."; exit 1 ;;
+          esac
 
       - uses: dtolnay/rust-toolchain@stable
+        if: steps.crate_state.outputs.already == 'false'
 
       - uses: Swatinem/rust-cache@v2
+        if: steps.crate_state.outputs.already == 'false'
         with:
           workspaces: cmojo-core
 
       - name: Install clang (blst needs it)
+        if: steps.crate_state.outputs.already == 'false'
         run: sudo apt-get update && sudo apt-get install -y clang
 
       # crates.io requires Cargo.toml's version to match the release; stamp it.
       - name: Stamp crate version from tag
+        if: steps.crate_state.outputs.already == 'false'
         working-directory: cmojo-core
+        env:
+          # See the note on the npm probe. This step is the highest-value one to keep as data:
+          # it runs in the job holding CARGO_REGISTRY_TOKEN, a long-lived credential.
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          sed -i -E "0,/^version = \".*\"/s//version = \"${{ steps.ver.outputs.version }}\"/" Cargo.toml
+          set -euo pipefail
+          sed -i -E "0,/^version = \".*\"/s//version = \"${VERSION}\"/" Cargo.toml
           grep -m1 '^version' Cargo.toml
 
       - name: Publish to crates.io
+        if: steps.crate_state.outputs.already == 'false'
         working-directory: cmojo-core
         run: cargo publish --allow-dirty --token "$CARGO_REGISTRY_TOKEN"
         env:
