@@ -49,7 +49,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${GITHUB_REF_TYPE}" != "tag" ] || ! printf '%s' "${GITHUB_REF_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+          # ANCHORED at both ends, deliberately. An unanchored pattern validates only a PREFIX, so
+          # a tag like `v1.2.3$(id)` -- which `git check-ref-format` accepts and which anyone with
+          # push access can create without touching this protected file -- would pass, and the
+          # version derived from it is spliced into the shell steps below.
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] || ! printf '%s' "${GITHUB_REF_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'; then
             echo "::error::This workflow publishes the version named by a v* TAG, but it was selected against '${GITHUB_REF_NAME}' (ref type '${GITHUB_REF_TYPE}'), which names no version. Re-run it with the tag selected as the ref."
             exit 1
           fi
@@ -65,9 +69,13 @@ jobs:
       - name: Skip if this version is already on npm
         id: npm_state
         shell: bash
+        env:
+          # Via `env:`, never `${{ }}` inside `run:`. An Actions expression is substituted as TEXT
+          # before the shell parses the line, so a hostile value would execute; an env var is data.
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -uo pipefail
-          V="${{ steps.ver.outputs.version }}"
+          V="$VERSION"
           if npm view "@dignetwork/cmojo-core@${V}" version >/dev/null 2>&1; then
             echo "already=true" >> "$GITHUB_OUTPUT"
             echo "@dignetwork/cmojo-core@${V} is already on npm — skipping this job."
@@ -147,7 +155,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${GITHUB_REF_TYPE}" != "tag" ] || ! printf '%s' "${GITHUB_REF_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+          # ANCHORED at both ends, deliberately. An unanchored pattern validates only a PREFIX, so
+          # a tag like `v1.2.3$(id)` -- which `git check-ref-format` accepts and which anyone with
+          # push access can create without touching this protected file -- would pass, and the
+          # version derived from it is spliced into the shell steps below.
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] || ! printf '%s' "${GITHUB_REF_NAME}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$'; then
             echo "::error::This workflow publishes the version named by a v* TAG, but it was selected against '${GITHUB_REF_NAME}' (ref type '${GITHUB_REF_TYPE}'), which names no version. Re-run it with the tag selected as the ref."
             exit 1
           fi
@@ -158,9 +170,12 @@ jobs:
       - name: Skip if this version is already on crates.io
         id: crate_state
         shell: bash
+        env:
+          # See the note on the npm probe: `env:` keeps the tag-derived value as data, not code.
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -uo pipefail
-          V="${{ steps.ver.outputs.version }}"
+          V="$VERSION"
           CODE="$(curl -sS -o /dev/null -w '%{http_code}' \
             -H 'User-Agent: dig-network-release (https://github.com/DIG-Network/cxch.app)' \
             "https://crates.io/api/v1/crates/cmojo-core/${V}" || echo 000)"
@@ -186,8 +201,13 @@ jobs:
       - name: Stamp crate version from tag
         if: steps.crate_state.outputs.already == 'false'
         working-directory: cmojo-core
+        env:
+          # See the note on the npm probe. This step is the highest-value one to keep as data:
+          # it runs in the job holding CARGO_REGISTRY_TOKEN, a long-lived credential.
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          sed -i -E "0,/^version = \".*\"/s//version = \"${{ steps.ver.outputs.version }}\"/" Cargo.toml
+          set -euo pipefail
+          sed -i -E "0,/^version = \".*\"/s//version = \"${VERSION}\"/" Cargo.toml
           grep -m1 '^version' Cargo.toml
 
       - name: Publish to crates.io

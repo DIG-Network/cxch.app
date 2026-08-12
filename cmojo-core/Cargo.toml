@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2021"
 description = "Spend-bundle builder for cMojo, a 1:1 wrapped-XCH CAT2 token on Chia"
 license = "MIT"
-repository = "https://github.com/DIG-Network/cXCH_DAPP"
+repository = "https://github.com/DIG-Network/cxch.app"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
